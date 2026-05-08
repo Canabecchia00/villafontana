@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Villa Fontana · Guest Service</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cinzel+Decorative:wght@400&family=Raleway:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── CONFIGURA QUI LE TUE CREDENZIALI FIREBASE ──
+const firebaseConfig = {
+  apiKey: "AIzaSyAvTB_64X3ice0zhN-0GjnYswQLE5W23Cc",
+  authDomain: "villa-f.firebaseapp.com",
+  databaseURL: "https://villa-f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "villa-f"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+window._fbDB = db;
+window._fbRef = ref;
+window._fbPush = push;
+window._fbOnValue = onValue;
+window._fbUpdate = update;
+window._fbReady = true;
+window.dispatchEvent(new Event('firebase-ready'));
+</script>
+<style>
+  :root {
+    --cream: #F5F0E8;
+    --ivory: #FAF7F2;
+    --gold: #B8975A;
+    --gold-light: #D4B87A;
+    --gold-pale: #F0E8D4;
+    --charcoal: #2A2520;
+    --warm-gray: #6B6460;
+    --divider: #E0D8CC;
+    --white: #FFFFFF;
+    --shadow: rgba(42,37,32,0.12);
+    --success: #4A7C59;
+    --danger: #8B3A3A;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Raleway', sans-serif;
+    background: var(--cream);
+    color: var(--charcoal);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── SPLASH / CHECK-IN ─── */
+  #splash {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--charcoal);
+    background-image: url('http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/06/img-1200x630-1.jpg');
+    background-size: cover;
+    background-position: center;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2rem;
+    transition: opacity 0.8s ease;
+  }
+  #splash::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(30, 24, 18, 0.72);
+    backdrop-filter: blur(1px);
+    z-index: 0;
+    pointer-events: none;
+  }
+  #splash > * { position: relative; z-index: 1; }
+  #splash.fade-out { opacity: 0; pointer-events: none; }
+
+  .splash-logo {
+    text-align: center;
+    animation: fadeUp 1s ease forwards;
+  }
+  .splash-ornament {
+    color: var(--gold);
+    font-size: 1.4rem;
+    letter-spacing: 0.5rem;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+  .splash-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2rem, 7vw, 3.5rem);
+    font-weight: 400;
+    color: var(--cream);
+    letter-spacing: 0.28em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+  .splash-sub {
+    font-size: 0.7rem;
+    letter-spacing: 0.4rem;
+    text-transform: uppercase;
+    color: var(--gold-light);
+    margin-top: 0.6rem;
+  }
+
+  .check-in-card {
+    background: rgba(245,240,232,0.06);
+    border: 1px solid rgba(184,151,90,0.3);
+    border-radius: 2px;
+    padding: 2.5rem 3rem;
+    width: min(420px, 90vw);
+    animation: fadeUp 1s 0.3s ease both;
+  }
+  .check-in-card h2 {
+    font-family: 'Cinzel', serif;
+    font-weight: 400;
+    font-size: 1.1rem;
+    color: var(--gold-light);
+    text-align: center;
+    margin-bottom: 1.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .field-group { margin-bottom: 1.2rem; }
+  .field-group label {
+    display: block;
+    font-size: 0.65rem;
+    letter-spacing: 0.25rem;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.5rem;
+  }
+  .field-group select,
+  .field-group input {
+    width: 100%;
+    background: rgba(245,240,232,0.08);
+    border: 1px solid rgba(184,151,90,0.25);
+    border-radius: 1px;
+    padding: 0.75rem 1rem;
+    color: var(--cream);
+    font-family: 'Raleway', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 300;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .field-group select option { background: #2A2520; color: var(--cream); }
+  .field-group select:focus,
+  .field-group input:focus { border-color: var(--gold); }
+  .field-group input::placeholder { color: rgba(245,240,232,0.3); }
+
+  .btn-checkin {
+    width: 100%;
+    background: var(--gold);
+    color: var(--charcoal);
+    border: none;
+    padding: 0.9rem;
+    font-family: 'Raleway', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.3rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: background 0.2s, transform 0.1s;
+    border-radius: 1px;
+  }
+  .btn-checkin:hover { background: var(--gold-light); }
+  .btn-checkin:active { transform: scale(0.99); }
+
+  .splash-footer {
+    font-size: 0.6rem;
+    letter-spacing: 0.25rem;
+    color: rgba(245,240,232,0.25);
+    text-transform: uppercase;
+    animation: fadeUp 1s 0.6s ease both;
+  }
+
+  /* ─── MAIN APP ─── */
+  #app { display: none; min-height: 100vh; }
+  #app.visible { display: block; }
+
+  /* Header */
+  .app-header {
+    background: var(--charcoal);
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    height: 60px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+  }
+  .header-logo {
+    font-family: 'Cinzel', serif;
+    font-size: 1.15rem;
+    font-weight: 400;
+    color: var(--cream);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .header-logo span { color: var(--gold); }
+  .header-info {
+    display: flex; align-items: center; gap: 1rem;
+  }
+  .guest-badge {
+    display: flex; flex-direction: column; align-items: flex-end;
+    line-height: 1.2;
+  }
+  .guest-badge .name {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--cream);
+  }
+  .guest-badge .room {
+    font-size: 0.65rem;
+    letter-spacing: 0.15rem;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .cart-btn {
+    background: none;
+    border: 1px solid rgba(184,151,90,0.4);
+    color: var(--gold);
+    padding: 0.45rem 0.8rem;
+    border-radius: 1px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex; align-items: center; gap: 0.4rem;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .cart-btn:hover { background: rgba(184,151,90,0.1); border-color: var(--gold); }
+  .cart-count {
+    background: var(--gold);
+    color: var(--charcoal);
+    font-size: 0.6rem;
+    font-weight: 600;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    position: absolute; top: -6px; right: -6px;
+  }
+  .cart-count.hidden { display: none; }
+
+  /* Location Banner */
+  .location-banner {
+    background: linear-gradient(135deg, #3a3028 0%, #2A2520 100%);
+    padding: 0.8rem 1.5rem;
+    display: flex; align-items: center; gap: 0.8rem;
+    border-bottom: 1px solid rgba(184,151,90,0.2);
+  }
+  .location-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.2rem;
+    text-transform: uppercase;
+    color: var(--warm-gray);
+  }
+  .location-select {
+    background: none;
+    border: none;
+    color: var(--gold-light);
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    font-weight: 400;
+    cursor: pointer;
+    outline: none;
+    -webkit-appearance: none;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .location-select option { background: #2A2520; }
+
+  /* Category Nav */
+  .category-nav {
+    background: var(--ivory);
+    border-bottom: 1px solid var(--divider);
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0 1rem;
+    gap: 0;
+  }
+  .category-nav::-webkit-scrollbar { display: none; }
+  .cat-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 1rem 1.2rem;
+    font-family: 'Raleway', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 400;
+    letter-spacing: 0.2rem;
+    text-transform: uppercase;
+    color: var(--warm-gray);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+  }
+  .cat-btn:hover { color: var(--charcoal); }
+  .cat-btn.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+    font-weight: 500;
+  }
+
+  /* Menu Grid */
+  .menu-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 6rem;
+  }
+  .section-header {
+    display: flex; align-items: baseline; gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--divider);
+  }
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: var(--charcoal);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .section-desc {
+    font-size: 0.75rem;
+    color: var(--warm-gray);
+    font-weight: 300;
+  }
+
+  .menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.2rem;
+  }
+
+  .menu-item {
+    background: var(--white);
+    border: 1px solid var(--divider);
+    border-radius: 2px;
+    overflow: hidden;
+    transition: box-shadow 0.25s, transform 0.25s;
+    cursor: pointer;
+    position: relative;
+  }
+  .menu-item:hover {
+    box-shadow: 0 8px 30px var(--shadow);
+    transform: translateY(-2px);
+  }
+  .menu-item.out-of-stock { opacity: 0.5; pointer-events: none; }
+
+  .item-img {
+    height: 190px;
+    background: var(--cream);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .item-img img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+  }
+  .menu-item:hover .item-img img { transform: scale(1.04); }
+  .item-tag {
+    position: absolute; top: 0.7rem; right: 0.7rem;
+    background: var(--gold);
+    color: var(--charcoal);
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.15rem;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 1px;
+  }
+  .item-tag.veg { background: #4A7C59; color: white; }
+  .item-tag.new { background: var(--charcoal); color: var(--gold); }
+
+  .item-body { padding: 1rem 1.1rem 1.2rem; }
+  .item-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    margin-bottom: 0.3rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .item-desc {
+    font-size: 0.75rem;
+    color: var(--warm-gray);
+    font-weight: 300;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    min-height: 2.2em;
+  }
+  .item-footer {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .item-price {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--charcoal);
+  }
+  .item-price span {
+    font-family: 'Raleway', sans-serif;
+    font-size: 0.65rem;
+    color: var(--warm-gray);
+    margin-left: 0.2rem;
+  }
+
+  .add-btn {
+    background: var(--charcoal);
+    color: var(--cream);
+    border: none;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .add-btn:hover { background: var(--gold); color: var(--charcoal); }
+  .add-btn:active { transform: scale(0.9); }
+  .add-btn.in-cart { background: var(--gold); color: var(--charcoal); font-size: 0.75rem; font-weight: 600; }
+
+  /* ─── CART SIDEBAR ─── */
+  .cart-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(42,37,32,0.5);
+    backdrop-filter: blur(3px);
+  }
+  .cart-overlay.open { display: block; }
+  .cart-sidebar {
+    position: fixed; top: 0; right: -420px; bottom: 0;
+    width: min(420px, 100vw);
+    background: var(--ivory);
+    z-index: 201;
+    display: flex; flex-direction: column;
+    transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: -4px 0 40px rgba(0,0,0,0.15);
+  }
+  .cart-sidebar.open { right: 0; }
+
+  .cart-header {
+    background: var(--charcoal);
+    padding: 1.2rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .cart-header h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: var(--cream);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .cart-close {
+    background: none; border: none;
+    color: var(--warm-gray); font-size: 1.4rem;
+    cursor: pointer; padding: 0.2rem; line-height: 1;
+    transition: color 0.2s;
+  }
+  .cart-close:hover { color: var(--cream); }
+
+  .cart-location-info {
+    padding: 0.8rem 1.5rem;
+    background: rgba(42,37,32,0.04);
+    border-bottom: 1px solid var(--divider);
+    font-size: 0.72rem;
+    color: var(--warm-gray);
+    display: flex; gap: 0.5rem; align-items: center;
+  }
+  .cart-location-info strong { color: var(--charcoal); font-weight: 500; }
+
+  .cart-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.5rem;
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .cart-empty {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 1rem;
+    height: 100%;
+    color: var(--warm-gray);
+    font-weight: 300;
+    text-align: center;
+  }
+  .cart-empty-icon { font-size: 3rem; opacity: 0.4; }
+  .cart-empty p { font-size: 0.85rem; }
+
+  .cart-item {
+    background: var(--white);
+    border: 1px solid var(--divider);
+    padding: 0.9rem 1rem;
+    display: flex; gap: 0.8rem; align-items: center;
+    border-radius: 2px;
+  }
+  .cart-item-emoji { font-size: 1.8rem; flex-shrink: 0; }
+  .cart-item-info { flex: 1; min-width: 0; }
+  .cart-item-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--charcoal);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .cart-item-price { font-size: 0.78rem; color: var(--gold); font-weight: 500; }
+  .cart-item-note {
+    font-size: 0.7rem; color: var(--warm-gray);
+    margin-top: 0.2rem; font-style: italic;
+  }
+  .qty-ctrl {
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .qty-btn {
+    background: var(--cream);
+    border: 1px solid var(--divider);
+    color: var(--charcoal);
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .qty-btn:hover { background: var(--gold-pale); }
+  .qty-val { font-size: 0.9rem; font-weight: 500; min-width: 1.5ch; text-align: center; }
+
+  .note-input {
+    width: 100%; background: var(--cream);
+    border: 1px solid var(--divider); border-radius: 1px;
+    padding: 0.4rem 0.6rem;
+    font-family: 'Raleway', sans-serif; font-size: 0.75rem;
+    color: var(--charcoal); resize: none; outline: none;
+    margin-top: 0.5rem;
+    transition: border-color 0.2s;
+  }
+  .note-input:focus { border-color: var(--gold); }
+  .note-input::placeholder { color: var(--warm-gray); }
+
+  .cart-footer {
+    padding: 1.2rem 1.5rem;
+    border-top: 1px solid var(--divider);
+    background: var(--white);
+  }
+  .cart-total {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 1rem;
+  }
+  .cart-total-label {
+    font-size: 0.65rem; letter-spacing: 0.2rem; text-transform: uppercase;
+    color: var(--warm-gray);
+  }
+  .cart-total-amount {
+    font-family: 'Cinzel', serif;
+    font-size: 1.3rem; font-weight: 400;
+    letter-spacing: 0.08em;
+  }
+
+  .special-request {
+    margin-bottom: 1rem;
+  }
+  .special-request label {
+    display: block;
+    font-size: 0.62rem; letter-spacing: 0.18rem; text-transform: uppercase;
+    color: var(--warm-gray); margin-bottom: 0.4rem;
+  }
+  .special-request textarea {
+    width: 100%; background: var(--cream);
+    border: 1px solid var(--divider); border-radius: 1px;
+    padding: 0.6rem 0.8rem;
+    font-family: 'Raleway', sans-serif; font-size: 0.8rem;
+    color: var(--charcoal); resize: none; outline: none; height: 56px;
+    transition: border-color 0.2s;
+  }
+  .special-request textarea:focus { border-color: var(--gold); }
+
+  .btn-order {
+    width: 100%;
+    background: var(--gold);
+    color: var(--charcoal);
+    border: none;
+    padding: 1rem;
+    font-family: 'Raleway', sans-serif;
+    font-size: 0.68rem; font-weight: 600;
+    letter-spacing: 0.3rem; text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 1px;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btn-order:hover { background: var(--gold-light); }
+  .btn-order:active { transform: scale(0.99); }
+  .btn-order:disabled { background: var(--divider); color: var(--warm-gray); cursor: not-allowed; }
+
+  /* ─── ORDERS PANEL ─── */
+  .orders-panel {
+    display: none;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 6rem;
+  }
+  .orders-panel.visible { display: block; }
+
+  .order-card {
+    background: var(--white);
+    border: 1px solid var(--divider);
+    border-radius: 2px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease;
+  }
+  .order-card-header {
+    background: var(--charcoal);
+    padding: 0.8rem 1.2rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .order-id {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem; font-weight: 400;
+    color: var(--cream); letter-spacing: 0.15em; text-transform: uppercase;
+  }
+  .order-time { font-size: 0.68rem; color: var(--warm-gray); }
+  .order-status {
+    padding: 0.25rem 0.8rem;
+    border-radius: 1px;
+    font-size: 0.6rem; font-weight: 600;
+    letter-spacing: 0.15rem; text-transform: uppercase;
+  }
+  .status-received { background: rgba(184,151,90,0.2); color: var(--gold-light); }
+  .status-preparing { background: rgba(74,124,89,0.2); color: #6BBF85; }
+  .status-delivering { background: rgba(90,130,200,0.2); color: #7AAFF0; }
+  .status-delivered { background: rgba(74,124,89,0.15); color: #4A7C59; }
+
+  .order-body { padding: 1rem 1.2rem; }
+  .order-meta {
+    display: flex; gap: 1.5rem; margin-bottom: 0.8rem;
+    font-size: 0.72rem; color: var(--warm-gray);
+  }
+  .order-meta strong { color: var(--charcoal); font-weight: 500; }
+  .order-items-list { list-style: none; }
+  .order-items-list li {
+    display: flex; justify-content: space-between;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--cream);
+    font-size: 0.82rem;
+  }
+  .order-items-list li:last-child { border-bottom: none; }
+  .order-items-list .item-q { color: var(--gold); font-weight: 500; }
+  .order-total-row {
+    display: flex; justify-content: flex-end;
+    margin-top: 0.7rem; padding-top: 0.7rem;
+    border-top: 1px solid var(--divider);
+    font-family: 'Cinzel', serif;
+    font-size: 0.95rem; font-weight: 400;
+    gap: 0.8rem; align-items: baseline;
+    letter-spacing: 0.08em;
+  }
+  .order-total-row .label { font-family: 'Raleway', sans-serif; font-size: 0.65rem; letter-spacing: 0.15rem; text-transform: uppercase; color: var(--warm-gray); }
+  .order-note-block {
+    margin-top: 0.6rem;
+    background: var(--cream);
+    padding: 0.5rem 0.7rem;
+    border-left: 2px solid var(--gold);
+    font-size: 0.75rem;
+    color: var(--warm-gray);
+    font-style: italic;
+  }
+
+  .no-orders {
+    text-align: center; padding: 4rem 2rem;
+    color: var(--warm-gray); font-weight: 300;
+  }
+  .no-orders p { margin-top: 0.5rem; font-size: 0.85rem; }
+
+  /* ─── TAB BAR ─── */
+  .tab-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--white);
+    border-top: 1px solid var(--divider);
+    display: flex;
+    z-index: 50;
+    box-shadow: 0 -4px 20px rgba(42,37,32,0.06);
+  }
+  .tab-btn {
+    flex: 1; background: none; border: none;
+    padding: 0.7rem 0.5rem;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+    border-top: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    color: var(--warm-gray);
+  }
+  .tab-btn .tab-icon { font-size: 1.2rem; }
+  .tab-btn .tab-label {
+    font-size: 0.55rem; letter-spacing: 0.12rem;
+    text-transform: uppercase; font-weight: 500;
+  }
+  .tab-btn.active { color: var(--gold); border-top-color: var(--gold); }
+
+  /* ─── ORDER SUCCESS TOAST ─── */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--charcoal);
+    color: var(--cream);
+    padding: 0.9rem 1.8rem;
+    border-radius: 2px;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    border-left: 3px solid var(--gold);
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── DEGUSTATION CARD ─── */
+  .degustation-card {
+    background: var(--white);
+    border: 1px solid var(--gold);
+    border-radius: 2px;
+    overflow: hidden;
+    padding: 2rem;
+    max-width: 600px;
+    box-shadow: 0 4px 24px rgba(184,151,90,0.12);
+  }
+  .deg-price-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--gold-pale);
+  }
+  .deg-price-label {
+    font-size: 0.65rem; letter-spacing: 0.2rem; text-transform: uppercase;
+    color: var(--warm-gray);
+  }
+  .deg-price {
+    font-family: 'Cinzel', serif;
+    font-size: 1.6rem; font-weight: 400;
+    color: var(--gold);
+    letter-spacing: 0.08em;
+  }
+  .deg-portate { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1.8rem; }
+  .deg-portata {
+    display: flex; gap: 1rem; align-items: flex-start;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--cream);
+  }
+  .deg-portata:last-child { border-bottom: none; }
+  .deg-num {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem; font-weight: 600;
+    color: var(--gold);
+    min-width: 1.4rem;
+    letter-spacing: 0.1em;
+    margin-top: 0.1rem;
+  }
+  .deg-portata-name {
+    font-size: 0.85rem;
+    color: var(--charcoal);
+    font-weight: 300;
+    line-height: 1.5;
+  }
+  .btn-add-deg {
+    width: 100%;
+    background: var(--charcoal);
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    padding: 0.9rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem; font-weight: 400;
+    letter-spacing: 0.25rem; text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 1px;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-add-deg:hover { background: var(--gold); color: var(--charcoal); }
+
+  .menu-item.no-price { cursor: default; }
+  .menu-item.no-price:hover { transform: none; box-shadow: none; }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 480px) {
+    .check-in-card { padding: 2rem 1.5rem; }
+    .menu-grid { grid-template-columns: 1fr; }
+    .order-meta { flex-direction: column; gap: 0.3rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════ SPLASH / CHECK-IN ════════════ -->
+<div id="splash">
+  <div class="splash-logo">
+    <span class="splash-ornament">✦ ✦ ✦</span>
+    <div class="splash-title">Villafontana</div>
+    <div class="splash-sub">Relais · Suites · Restaurant &amp; Spa · Agliano Terme</div>
+  </div>
+
+  <div class="check-in-card">
+    <h2>Benvenuto · Welcome</h2>
+    <div class="field-group">
+      <label>Il tuo nome · Your name</label>
+      <input type="text" id="input-name" placeholder="es. Giulia Rossi" autocomplete="off">
+    </div>
+    <div class="field-group">
+      <label>Camera · Room</label>
+      <select id="input-room">
+        <option value="">— Seleziona la camera —</option>
+        <option>Camera 1 · Suite Piemont</option>
+        <option>Camera 2 · Suite Alba</option>
+        <option>Camera 3 · Suite Barolo</option>
+        <option>Camera 4 · Deluxe Langhe</option>
+        <option>Camera 5 · Deluxe Monferrato</option>
+        <option>Camera 6 · Classica Nizza</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Dove sei adesso · Current location</label>
+      <select id="input-location">
+        <option value="">— Seleziona posizione —</option>
+        <option>In camera</option>
+        <option>Piscina</option>
+        <option>Terrazza panoramica</option>
+        <option>Spa &amp; Wellness</option>
+        <option>Giardino</option>
+        <option>Sala colazioni</option>
+        <option>Lounge bar</option>
+      </select>
+    </div>
+    <button class="btn-checkin" onclick="doCheckIn()">Accedi al Menu · Enter</button>
+  </div>
+
+  <div class="splash-footer">Pranzo 12:30–14:00 · Cena 19:30–21:00 · Chiuso mer. e gio.</div>
+</div>
+
+<!-- ════════════ MAIN APP ════════════ -->
+<div id="app">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-logo">Villa<span>fontana</span></div>
+    <div class="header-info">
+      <div class="guest-badge">
+        <span class="name" id="disp-name">—</span>
+        <span class="room" id="disp-room">—</span>
+      </div>
+      <button class="cart-btn" onclick="toggleCart()">
+        🛒
+        <span class="cart-count hidden" id="cart-count">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Location banner -->
+  <div class="location-banner">
+    <span class="location-label">Posizione ·</span>
+    <select class="location-select" id="disp-location" onchange="updateLocation(this.value)">
+      <option>In camera</option>
+      <option>Piscina</option>
+      <option>Terrazza panoramica</option>
+      <option>Spa &amp; Wellness</option>
+      <option>Giardino</option>
+      <option>Sala colazioni</option>
+      <option>Lounge bar</option>
+    </select>
+  </div>
+
+  <!-- Category nav -->
+  <nav class="category-nav" id="cat-nav"></nav>
+
+  <!-- Menu content -->
+  <main>
+    <div class="menu-container" id="menu-container"></div>
+    <div class="orders-panel" id="orders-panel">
+      <div class="section-header">
+        <h2 class="section-title">I miei ordini</h2>
+        <span class="section-desc">Storico della sessione</span>
+      </div>
+      <div id="orders-list"></div>
+    </div>
+  </main>
+
+  <!-- Tab bar -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('menu')" id="tab-menu">
+      <span class="tab-icon">🍽</span>
+      <span class="tab-label">Menu</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('orders')" id="tab-orders">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">I miei ordini</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- Cart overlay + sidebar -->
+<div class="cart-overlay" id="cart-overlay" onclick="toggleCart()"></div>
+<div class="cart-sidebar" id="cart-sidebar">
+  <div class="cart-header">
+    <h2>Il tuo ordine</h2>
+    <button class="cart-close" onclick="toggleCart()">✕</button>
+  </div>
+  <div class="cart-location-info">
+    📍 Consegna a: <strong id="cart-loc-display">—</strong>&nbsp;·&nbsp;<span id="cart-room-display">—</span>
+  </div>
+  <div class="cart-items" id="cart-items"></div>
+  <div class="cart-footer">
+    <div class="cart-total">
+      <span class="cart-total-label">Totale</span>
+      <span class="cart-total-amount" id="cart-total">€ 0,00</span>
+    </div>
+    <div class="special-request">
+      <label>Richieste speciali · Special requests</label>
+      <textarea id="special-req" placeholder="Allergie, preferenze, note…"></textarea>
+    </div>
+    <button class="btn-order" id="btn-order" onclick="placeOrder()" disabled>
+      Invia ordine · Place order
+    </button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">✦ Ordine inviato con successo!</div>
+
+<script>
+/* ══════════════════════════════
+   DATA – MENU VILLA FONTANA
+   La Fontana del Re · Primavera 2026
+   Aggiornato al 03/04/2026
+══════════════════════════════ */
+
+// ── Info ristorante
+const RISTORANTE = {
+  nome: 'Ristorante Villa Fontana — La Fontana del Re',
+  telefono: '+39 0141 964031',
+  email: 'info@villafontanaaglianoterme.it',
+  sito: 'https://www.villafontanaaglianoterme.it',
+  orari: { pranzo: '12:30 – 14:00', cena: '19:30 – 21:00', chiusura: 'Mercoledì e Giovedì' },
+  coperto: 4.00,
+  acqua: 3.50
+};
+
+// ── Menù degustazione
+const DEGUSTAZIONE = {
+  nome: 'Menù Degustazione Contemporaneo',
+  prezzo: 75.00,
+  note: 'Per l’intero tavolo. Bevande e vini esclusi.',
+  portate: [
+    'Carpaccio di ricciola con gelatina di ceviche, cocco e coriandolo',
+    'Carciofo, fonduta di Raschera, acciughe e grano saraceno',
+    'Gnocchi ripieni di ragù d’anatra, salsa al foie gras, Marsala e tartufo nero',
+    'Guancia di maiale alle tre creme: prezzemolo, mais e il suo fondo',
+    'Goloso al cioccolato e amaretti con salsa al caramello salato'
+  ]
+};
+
+// ── Menu a la carte
+const MENU = [
+  // ── ANTIPASTI
+  { id:1,  cat:'Antipasti', name:'Carpaccio di ricciola', desc:'Con gelatina di ceviche, cocco e coriandolo', price:22, emoji:'🐟', tag:'chef', img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-01.jpg' },
+  { id:2,  cat:'Antipasti', name:'Carne cruda tagliata al coltello', desc:'Con rabarbaro, Gran Kinara e maionese di "Tonda Gentile"', price:18, emoji:'🥩', tag:null, img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-02.jpg' },
+  { id:3,  cat:'Antipasti', name:'Carciofo, fonduta di Raschera', desc:'Con acciughe e grano saraceno', price:18, emoji:'🌿', tag:null, img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-03.jpg' },
+  { id:4,  cat:'Antipasti', name:'Capesante, cardoncelli e Blu di Langa', desc:'Capesante, cardoncelli e Blu di Langa', price:24, emoji:'🫧', tag:'chef', img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-05.jpg' },
+  { id:5,  cat:'Antipasti', name:'Animella al Moscato d’Asti', desc:'Con asparagi e spuma di funghi di campo', price:20, emoji:'✨', tag:'chef', img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-06.jpg' },
+
+  // ── PRIMI
+  { id:6,  cat:'Primi', name:'Agnolotti del plin di faraona', desc:'Con il suo fondo — pasta fresca all’uovo ripiena', price:18, emoji:'🍝', tag:'chef', img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-07.jpg' },
+  { id:7,  cat:'Primi', name:'Lasagna al ragù di coniglio', desc:'Con robiola di Roccaverano, zucca e liquirizia', price:19, emoji:'🍝', tag:null, img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-08.jpg' },
+  { id:8,  cat:'Primi', name:'Gnocchi ripieni di anatra', desc:'Salsa al foie gras, Marsala e tartufo nero', price:22, emoji:'🍝', tag:'chef', img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-09.jpg' },
+  { id:9,  cat:'Primi', name:'Risotto alle erbe primaverili', desc:'Carnaroli, limone e anguilla affumicata', price:20, emoji:'🍚', tag:'new', img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-11.jpg' },
+  { id:10, cat:'Primi', name:'Spaghetto di Bossolasco', desc:'Alla grappa di Barbera, timo e guanciale di maialino nero affumicato', price:20, emoji:'🍝', tag:null, img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-12.jpg' },
+  { id:11, cat:'Primi', name:'Seppia e piselli', desc:'Seppia e piselli', price:25, emoji:'🦑', tag:null, img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-15.jpg' },
+  { id:12, cat:'Primi', name:'Corba rossa', desc:'Con asparagi, beurre blanc e caviale italiano', price:30, emoji:'🐟', tag:'chef', img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-16.jpg' },
+
+  // ── SECONDI
+  { id:13, cat:'Secondi', name:'Guancia di maialino in lenta cottura', desc:'Alle tre creme', price:24, emoji:'🍖', tag:null, img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-17.jpg' },
+  { id:14, cat:'Secondi', name:'Filetto di vitello in crosta di grissini', desc:'Crema di patate arrosto e misticanza di primavera', price:28, emoji:'🥩', tag:'chef', img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-18.jpg' },
+  { id:15, cat:'Secondi', name:'Piccione "Renard Rouge" alla brace', desc:'Petto, lollipop di coscia, dumpling del suo ragù, erbette e radice di prezzemolo', price:35, emoji:'🍗', tag:'chef', img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/villa-fontana-relais-suites-ristorante-2.jpg' },
+
+  // ── DOLCI
+  { id:16, cat:'Dolci', name:'Panna cotta alle fragole', desc:'Con meringa e limone', price:12, emoji:'🍮', tag:null, img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/villa-fontana-relais-suites-ristorante-7.jpg' },
+  { id:17, cat:'Dolci', name:'Mousse al mascarpone e caffè', desc:'Con gelato al cioccolato e cardamomo', price:12, emoji:'☕', tag:null, img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/villa-fontana-relais-suites-ristorante-9.jpg' },
+  { id:18, cat:'Dolci', name:'Goloso al cioccolato e amaretti', desc:'Con salsa al caramello salato', price:14, emoji:'🍫', tag:'chef', img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/gallery-generica-relais-06.jpg' },
+  { id:19, cat:'Dolci', name:'Babà al rhum, arancia e vaniglia', desc:'Sfera di babà al rhum, arancia e vaniglia', price:14, emoji:'🍰', tag:'chef', img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/img-pagina-risto.jpg' },
+
+  // ── INSALATE
+  { id:20, cat:'Insalate', name:'Insalata Italiana', desc:'Insalata mista, pomodorini, carote, mozzarella di bufala, olive taggiasche', price:null, emoji:'🥗', tag:null, img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/top-page-gallery-risto.jpg' },
+  { id:21, cat:'Insalate', name:'Caesar Salad', desc:'Iceberg, pancetta croccante, grana, crostini all’aglio e petto di pollo a bassa temperatura', price:null, emoji:'🥗', tag:null, img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/top-page-ristorante-new.jpg' },
+
+  // ── VINI DEL TERRITORIO
+  { id:22, cat:'Vini', name:'Barbera d’Asti', desc:'Produttori locali delle Langhe e Monferrato (zona UNESCO)', price:null, emoji:'🍷', tag:'chef', img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-tartufo.jpg' },
+  { id:23, cat:'Vini', name:'Moscato d’Asti DOCG', desc:'Dolce, aromatico, ideale con i dessert', price:null, emoji:'🥂', tag:null, img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-orari.jpg' },
+  { id:24, cat:'Vini', name:'Barolo DOCG', desc:'Nebbiolo delle Langhe, intenso e strutturato', price:null, emoji:'🍷', tag:'chef', img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-tartufo.jpg' },
+  { id:25, cat:'Vini', name:'Barbaresco DOCG', desc:'Nebbiolo elegante, note di viola e spezie', price:null, emoji:'🍷', tag:null, img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-orari.jpg' },
+  { id:26, cat:'Vini', name:'Langhe e Monferrato', desc:'Selezione di etichette locali — chiedere al sommelier', price:null, emoji:'🍾', tag:null, img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/06/img-1200x630-1.jpg' },
+
+  // ── ACQUA & COPERTO
+  { id:27, cat:'Acqua & Coperto', name:'Acqua minerale', desc:'Naturale o frizzante · 750 ml', price:3.50, emoji:'💧', tag:null, img:null },
+  { id:28, cat:'Acqua & Coperto', name:'Coperto', desc:'Per persona', price:4.00, emoji:'🍽', tag:null, img:null },
+];
+
+/* ══════════════════════════════
+   STATE
+══════════════════════════════ */
+let guest = { name:'', room:'', location:'' };
+let cart = [];        // [{ item, qty, note }]
+let orders = [];      // past orders
+let activeCategory = 'Antipasti';
+const CATEGORIES = [...new Set(MENU.map(i=>i.cat)), 'Degustazione'];
+
+/* ══════════════════════════════
+   CHECK-IN
+══════════════════════════════ */
+function doCheckIn() {
+  const name = document.getElementById('input-name').value.trim();
+  const room = document.getElementById('input-room').value;
+  const loc  = document.getElementById('input-location').value;
+  if (!name || !room || !loc) {
+    shakeMissing([
+      !name && 'input-name',
+      !room && 'input-room',
+      !loc  && 'input-location'
+    ].filter(Boolean));
+    return;
+  }
+  guest = { name, room, location: loc };
+
+  document.getElementById('disp-name').textContent = name;
+  document.getElementById('disp-room').textContent = room;
+  const locSel = document.getElementById('disp-location');
+  [...locSel.options].forEach(o=>{ if(o.value===loc||o.text===loc) o.selected=true; });
+  document.getElementById('cart-loc-display').textContent = loc;
+  document.getElementById('cart-room-display').textContent = room;
+
+  const splash = document.getElementById('splash');
+  splash.classList.add('fade-out');
+  setTimeout(()=>{
+    splash.style.display='none';
+    const app=document.getElementById('app');
+    app.classList.add('visible');
+    buildCategoryNav();
+    renderMenu();
+  }, 800);
+}
+
+function shakeMissing(ids){
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    el.style.borderColor='#8B3A3A';
+    el.style.animation='shake 0.4s ease';
+    setTimeout(()=>{ el.style.animation=''; el.style.borderColor=''; },600);
+  });
+}
+
+/* Add shake keyframe dynamically */
+const style=document.createElement('style');
+style.textContent=`@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}`;
+document.head.appendChild(style);
+
+/* ══════════════════════════════
+   LOCATION UPDATE
+══════════════════════════════ */
+function updateLocation(val){
+  guest.location = val;
+  document.getElementById('cart-loc-display').textContent = val;
+}
+
+/* ══════════════════════════════
+   CATEGORY NAV
+══════════════════════════════ */
+const CAT_ICONS = { Antipasti:'🐟', Primi:'🍝', Secondi:'🥩', Dolci:'🍰', Insalate:'🥗', Vini:'🍷', 'Acqua & Coperto':'💧', Degustazione:'⭐' };
+
+function buildCategoryNav(){
+  const nav = document.getElementById('cat-nav');
+  nav.innerHTML = CATEGORIES.map(c=>`
+    <button class="cat-btn ${c===activeCategory?'active':''}" onclick="setCategory('${c}')">
+      ${CAT_ICONS[c]||''} ${c}
+    </button>
+  `).join('');
+}
+
+function setCategory(cat){
+  activeCategory = cat;
+  buildCategoryNav();
+  renderMenu();
+  // scroll to top of menu
+  document.getElementById('menu-container').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ══════════════════════════════
+   MENU RENDER
+══════════════════════════════ */
+function renderMenu(){
+  const container = document.getElementById('menu-container');
+
+  // ── Special: Degustazione
+  if(activeCategory === 'Degustazione'){
+    container.innerHTML = `
+      <div class="section-header">
+        <h2 class="section-title">⭐ ${DEGUSTAZIONE.nome}</h2>
+        <span class="section-desc">${DEGUSTAZIONE.note}</span>
+      </div>
+      <div class="degustation-card">
+        <div class="deg-price-row">
+          <span class="deg-price-label">Prezzo per persona</span>
+          <span class="deg-price">€ ${DEGUSTAZIONE.prezzo.toFixed(2).replace('.',',')}</span>
+        </div>
+        <div class="deg-portate">
+          ${DEGUSTAZIONE.portate.map((p,i)=>`
+            <div class="deg-portata">
+              <span class="deg-num">${i+1}</span>
+              <span class="deg-portata-name">${p}</span>
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn-add-deg" onclick="addDegustazione()">
+          + Aggiungi al tuo ordine
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  const items = MENU.filter(i=>i.cat===activeCategory);
+  const inCartIds = new Set(cart.map(c=>c.item.id));
+
+  const hasChef = items.some(i=>i.tag==='chef');
+  const tagHtml = hasChef ? `<span class="section-desc">⭐ Selezione dello chef</span>` : '';
+
+  container.innerHTML = `
+    <div class="section-header">
+      <h2 class="section-title">${CAT_ICONS[activeCategory]||''} ${activeCategory}</h2>
+      ${tagHtml}
+    </div>
+    <div class="menu-grid">
+      ${items.map(item=>itemCard(item, inCartIds.has(item.id))).join('')}
+    </div>
+  `;
+}
+
+function itemCard(item, inCart){
+  const tagMap = { chef:'⭐ Chef', veg:'Veg', new:'Novità' };
+  const tagClass= item.tag==='veg'?'veg':item.tag==='new'?'new':'';
+  const tagLabel= item.tag? tagMap[item.tag]||item.tag : '';
+  const priceFormatted = item.price !== null
+    ? `€ ${item.price.toFixed(2).replace('.',',')}`
+    : `<span style="font-size:0.7rem;letter-spacing:0.05em;color:var(--warm-gray)">Chiedere al sommelier</span>`;
+  const canAdd = item.price !== null;
+
+  // Image or emoji fallback
+  const imgContent = item.img
+    ? `<img src="${item.img}" alt="${item.name}" loading="lazy"
+         style="width:100%;height:100%;object-fit:cover;display:block;"
+         onerror="this.style.display='none';this.parentElement.querySelector('.img-fallback').style.display='flex'">`
+    : '';
+  const fallbackStyle = item.img ? 'display:none' : 'display:flex';
+
+  return `<div class="menu-item${canAdd?'':' no-price'}" ${canAdd?`onclick="addToCart(${item.id})"`:''}>
+    <div class="item-img" style="position:relative;overflow:hidden;">
+      ${imgContent}
+      <div class="img-fallback" style="${fallbackStyle};position:absolute;inset:0;align-items:center;justify-content:center;font-size:3.5rem;background:var(--cream);">${item.emoji}</div>
+      ${item.tag?`<span class="item-tag ${tagClass}" style="position:absolute;top:0.7rem;right:0.7rem;z-index:2">${tagLabel}</span>`:''}
+    </div>
+    <div class="item-body">
+      <div class="item-name">${item.name}</div>
+      <div class="item-desc">${item.desc}</div>
+      <div class="item-footer">
+        <div class="item-price">${priceFormatted}</div>
+        ${canAdd ? `<button class="add-btn ${inCart?'in-cart':''}" onclick="event.stopPropagation();addToCart(${item.id})">${inCart?'✓':'+'}</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ══════════════════════════════
+   CART
+══════════════════════════════ */
+function addToCart(itemId){
+  const item = MENU.find(i=>i.id===itemId);
+  const existing = cart.find(c=>c.item.id===itemId);
+  if(existing){ existing.qty++; }
+  else { cart.push({ item, qty:1, note:'' }); }
+  updateCartBadge();
+  renderMenu();
+  renderCartItems();
+  // brief feedback
+  showToast(`${item.emoji} ${item.name} aggiunto`);
+}
+
+function addDegustazione(){
+  // Add as a special item
+  const existing = cart.find(c=>c.item.id==='deg');
+  if(existing){ existing.qty++; }
+  else {
+    cart.push({ item:{ id:'deg', name:'Menù Degustazione Contemporaneo', price:DEGUSTAZIONE.prezzo, emoji:'⭐', cat:'Degustazione' }, qty:1, note:'' });
+  }
+  updateCartBadge();
+  showToast('⭐ Menù Degustazione aggiunto');
+}
+
+function removeFromCart(itemId){
+  cart = cart.filter(c=>c.item.id!==itemId);
+  updateCartBadge();
+  renderMenu();
+  renderCartItems();
+}
+
+function changeQty(itemId, delta){
+  const entry = cart.find(c=>c.item.id===itemId);
+  if(!entry) return;
+  entry.qty += delta;
+  if(entry.qty<=0){ removeFromCart(itemId); return; }
+  updateCartBadge();
+  renderCartItems();
+}
+
+function updateNote(itemId, val){
+  const entry = cart.find(c=>c.item.id===itemId);
+  if(entry) entry.note = val;
+}
+
+function updateCartBadge(){
+  const total = cart.reduce((s,c)=>s+c.qty,0);
+  const badge = document.getElementById('cart-count');
+  badge.textContent = total;
+  badge.classList.toggle('hidden', total===0);
+  document.getElementById('btn-order').disabled = cart.length===0;
+  updateCartTotal();
+}
+
+function updateCartTotal(){
+  const total = cart.reduce((s,c)=>s+(c.item.price*c.qty),0);
+  document.getElementById('cart-total').textContent = '€ '+total.toFixed(2).replace('.',',');
+}
+
+function renderCartItems(){
+  const container = document.getElementById('cart-items');
+  if(cart.length===0){
+    container.innerHTML=`<div class="cart-empty">
+      <span class="cart-empty-icon">🍽</span>
+      <p>Il tuo carrello è vuoto.<br>Sfoglia il menu e aggiungi qualcosa!</p>
+    </div>`;
+    return;
+  }
+  container.innerHTML = cart.map(entry=>`
+    <div class="cart-item">
+      <span class="cart-item-emoji">${entry.item.emoji}</span>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${entry.item.name}</div>
+        <div class="cart-item-price">€ ${(entry.item.price*entry.qty).toFixed(2).replace('.',',')}
+          ${entry.qty>1?`<span style="color:var(--warm-gray);font-weight:300">(${entry.qty} × € ${entry.item.price.toFixed(2).replace('.',',')})</span>`:''}
+        </div>
+        <textarea class="note-input" rows="1" placeholder="Nota (es. senza glutine)…"
+          onchange="updateNote(${entry.item.id}, this.value)"
+          onfocus="this.rows=2" onblur="this.rows=1">${entry.note}</textarea>
+      </div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeQty(${entry.item.id},-1)">−</button>
+        <span class="qty-val">${entry.qty}</span>
+        <button class="qty-btn" onclick="changeQty(${entry.item.id},+1)">+</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleCart(){
+  const overlay = document.getElementById('cart-overlay');
+  const sidebar = document.getElementById('cart-sidebar');
+  const open = sidebar.classList.contains('open');
+  overlay.classList.toggle('open', !open);
+  sidebar.classList.toggle('open', !open);
+  if(!open) renderCartItems();
+}
+
+/* ══════════════════════════════
+   FIREBASE HELPERS
+══════════════════════════════ */
+function fbPushOrder(order){
+  if(!window._fbReady) return;
+  try {
+    const ordersRef = window._fbRef(window._fbDB, 'orders');
+    window._fbPush(ordersRef, order);
+  } catch(e){ console.warn('Firebase push failed:', e); }
+}
+
+function fbListenOrders(){
+  if(!window._fbReady) return;
+  try {
+    const ordersRef = window._fbRef(window._fbDB, 'orders');
+    window._fbOnValue(ordersRef, snapshot => {
+      const data = snapshot.val();
+      if(!data) return;
+      // Sync status updates from manager back to local orders array
+      Object.entries(data).forEach(([fbKey, fbOrder]) => {
+        const local = orders.find(o => o.id === fbOrder.id);
+        if(local && local.status !== fbOrder.status){
+          local.status = fbOrder.status;
+          local._fbKey = fbKey;
+          renderOrdersList();
+          if(fbOrder.status === 'preparing') showToast('👨‍🍳 Il tuo ordine è in preparazione!');
+          if(fbOrder.status === 'delivering') showToast('🛎 Il tuo ordine è in arrivo!');
+          if(fbOrder.status === 'delivered') showToast('✅ Ordine consegnato. Buon appetito!');
+        }
+        if(local && !local._fbKey) local._fbKey = fbKey;
+      });
+    });
+  } catch(e){ console.warn('Firebase listen failed:', e); }
+}
+
+// Start listening when Firebase is ready
+window.addEventListener('firebase-ready', fbListenOrders);
+
+/* ══════════════════════════════
+   PLACE ORDER
+══════════════════════════════ */
+function placeOrder(){
+  if(cart.length===0) return;
+  const specialReq = document.getElementById('special-req').value.trim();
+  const order = {
+    id: 'ORD-' + Date.now().toString(36).toUpperCase(),
+    timestamp: Date.now(),
+    time: new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
+    location: guest.location,
+    room: guest.room,
+    guest: guest.name,
+    items: cart.map(c=>({ name:c.item.name, qty:c.qty, price:c.item.price||0, note:c.note||'', emoji:c.item.emoji })),
+    total: cart.reduce((s,c)=>s+(( c.item.price||0)*c.qty),0),
+    specialReq: specialReq || '',
+    status: 'received'
+  };
+  orders.unshift(order);
+  cart = [];
+  document.getElementById('special-req').value = '';
+  updateCartBadge();
+  renderCartItems();
+  renderMenu();
+  toggleCart();
+
+  // Send to Firebase (real-time to manager)
+  fbPushOrder(order);
+
+  showToast('✦ Ordine inviato con successo!');
+}
+
+function updateOrderStatus(id, status){
+  const o = orders.find(o=>o.id===id);
+  if(o) o.status = status;
+}
+
+/* ══════════════════════════════
+   ORDERS LIST
+══════════════════════════════ */
+const STATUS_LABELS = { received:'Ricevuto', preparing:'In preparazione', delivering:'In consegna', delivered:'Consegnato' };
+const STATUS_CLASSES= { received:'status-received', preparing:'status-preparing', delivering:'status-delivering', delivered:'status-delivered' };
+
+function renderOrdersList(){
+  const container = document.getElementById('orders-list');
+  if(orders.length===0){
+    container.innerHTML=`<div class="no-orders">
+      <div style="font-size:2.5rem">📋</div>
+      <p>Nessun ordine ancora.<br>Sfoglia il menu e ordina!</p>
+    </div>`;
+    return;
+  }
+  container.innerHTML = orders.map(o=>`
+    <div class="order-card">
+      <div class="order-card-header">
+        <div>
+          <div class="order-id">${o.id}</div>
+          <div class="order-time">⏱ ${o.time}</div>
+        </div>
+        <span class="order-status ${STATUS_CLASSES[o.status]}">${STATUS_LABELS[o.status]}</span>
+      </div>
+      <div class="order-body">
+        <div class="order-meta">
+          <div>📍 <strong>${o.location}</strong></div>
+          <div>🛏 <strong>${o.room}</strong></div>
+          <div>👤 <strong>${o.guest}</strong></div>
+        </div>
+        <ul class="order-items-list">
+          ${o.items.map(i=>`
+            <li>
+              <span>${i.emoji} ${i.name}${i.note?` <em style="color:var(--warm-gray);font-size:0.7rem">(${i.note})</em>`:''}</span>
+              <span><span class="item-q">${i.qty}×</span> € ${(i.price*i.qty).toFixed(2).replace('.',',')}</span>
+            </li>
+          `).join('')}
+        </ul>
+        ${o.specialReq?`<div class="order-note-block">📝 ${o.specialReq}</div>`:''}
+        <div class="order-total-row">
+          <span class="label">Totale</span>
+          <span>€ ${o.total.toFixed(2).replace('.',',')}</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ══════════════════════════════
+   TAB SWITCH
+══════════════════════════════ */
+function switchTab(tab){
+  const menuContainer = document.getElementById('menu-container');
+  const catNav = document.getElementById('cat-nav');
+  const ordersPanel = document.getElementById('orders-panel');
+  const locBanner = document.querySelector('.location-banner');
+  const tabMenu = document.getElementById('tab-menu');
+  const tabOrders = document.getElementById('tab-orders');
+
+  if(tab==='menu'){
+    menuContainer.style.display='';
+    catNav.style.display='';
+    locBanner.style.display='';
+    ordersPanel.classList.remove('visible');
+    tabMenu.classList.add('active'); tabOrders.classList.remove('active');
+  } else {
+    menuContainer.style.display='none';
+    catNav.style.display='none';
+    locBanner.style.display='none';
+    ordersPanel.classList.add('visible');
+    tabMenu.classList.remove('active'); tabOrders.classList.add('active');
+    renderOrdersList();
+  }
+}
+
+/* ══════════════════════════════
+   TOAST
+══════════════════════════════ */
+let toastTimer;
+function showToast(msg){
+  const toast=document.getElementById('toast');
+  toast.textContent=msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toast.classList.remove('show'),2800);
+}
+
+/* ══════════════════════════════
+   INIT
+══════════════════════════════ */
+// Init is triggered via check-in
+</script>
+</body>
+</html>

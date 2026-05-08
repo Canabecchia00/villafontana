@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Villa Fontana · Manager Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── STESSE CREDENZIALI DELL'APP CLIENTE ──
+const firebaseConfig = {
+  apiKey: "AIzaSyAvTB_64X3ice0zhN-0GjnYswQLE5W23Cc",
+  authDomain: "villa-f.firebaseapp.com",
+  databaseURL: "https://villa-f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "villa-f"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Expose to global scope
+window._db = db;
+window._ref = ref;
+window._update = update;
+window._remove = remove;
+
+// Listen to all orders in real-time
+const ordersRef = ref(db, 'orders');
+onValue(ordersRef, snapshot => {
+  const data = snapshot.val();
+  window._ordersData = data || {};
+  window.renderOrders(data);
+});
+
+window._updateStatus = function(fbKey, newStatus) {
+  const orderRef = ref(db, 'orders/' + fbKey);
+  update(orderRef, { status: newStatus });
+};
+
+window._deleteOrder = function(fbKey) {
+  const orderRef = ref(db, 'orders/' + fbKey);
+  remove(orderRef);
+};
+</script>
+
+<style>
+:root {
+  --bg: #1A1612;
+  --surface: #231F1A;
+  --card: #2C2720;
+  --border: #3A342C;
+  --gold: #C9A84C;
+  --gold-light: #E0C070;
+  --gold-pale: rgba(201,168,76,0.12);
+  --cream: #F0EAE0;
+  --warm-gray: #8A8078;
+  --white: #FAF7F2;
+  --green: #4A8C5C;
+  --green-bg: rgba(74,140,92,0.15);
+  --blue: #4A7AAC;
+  --blue-bg: rgba(74,122,172,0.15);
+  --orange: #C07840;
+  --orange-bg: rgba(192,120,64,0.15);
+  --purple: #7A5C9C;
+  --purple-bg: rgba(122,92,156,0.15);
+  --red: #AC4A4A;
+  --red-bg: rgba(172,74,74,0.15);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Raleway', sans-serif;
+  background: var(--bg);
+  color: var(--cream);
+  min-height: 100vh;
+}
+
+/* ── LOGIN ── */
+#login-screen {
+  position: fixed; inset:0; z-index:100;
+  background: var(--bg);
+  display: flex; align-items:center; justify-content:center;
+  flex-direction: column; gap: 2rem;
+}
+.login-logo {
+  text-align: center;
+}
+.login-logo h1 {
+  font-family: 'Cinzel', serif;
+  font-size: 2rem; font-weight: 400;
+  letter-spacing: 0.25em;
+  color: var(--cream);
+  text-transform: uppercase;
+}
+.login-logo p {
+  font-size: 0.65rem; letter-spacing: 0.3rem;
+  text-transform: uppercase; color: var(--gold);
+  margin-top: 0.4rem;
+}
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2rem 2.5rem;
+  width: min(380px, 90vw);
+}
+.login-card h2 {
+  font-family: 'Cinzel', serif;
+  font-size: 0.85rem; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 1.5rem; text-align: center;
+}
+.login-field { margin-bottom: 1rem; }
+.login-field label {
+  display:block; font-size:0.62rem;
+  letter-spacing:0.2rem; text-transform:uppercase;
+  color: var(--warm-gray); margin-bottom: 0.4rem;
+}
+.login-field input {
+  width:100%; background: var(--card);
+  border: 1px solid var(--border);
+  padding: 0.75rem 1rem; color: var(--cream);
+  font-family: 'Raleway', sans-serif; font-size:0.9rem;
+  outline:none; transition: border-color 0.2s;
+}
+.login-field input:focus { border-color: var(--gold); }
+.login-error {
+  color: var(--red); font-size:0.75rem;
+  text-align:center; margin-top:0.5rem; display:none;
+}
+.btn-login {
+  width:100%; background: var(--gold); color: var(--bg);
+  border:none; padding:0.9rem;
+  font-family:'Cinzel',serif; font-size:0.7rem;
+  font-weight:600; letter-spacing:0.3rem;
+  text-transform:uppercase; cursor:pointer;
+  margin-top:0.5rem; transition: background 0.2s;
+}
+.btn-login:hover { background: var(--gold-light); }
+
+/* ── MAIN LAYOUT ── */
+#app { display:none; flex-direction:column; min-height:100vh; }
+#app.visible { display:flex; }
+
+.top-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  height: 60px;
+  display:flex; align-items:center; justify-content:space-between;
+  position: sticky; top:0; z-index:50;
+}
+.top-bar-logo {
+  font-family:'Cinzel',serif;
+  font-size:1rem; font-weight:400;
+  letter-spacing:0.2em; text-transform:uppercase;
+  color: var(--cream);
+}
+.top-bar-logo span { color: var(--gold); }
+
+.top-bar-right { display:flex; align-items:center; gap:1rem; }
+
+.connection-dot {
+  width:8px; height:8px; border-radius:50%;
+  background: #4A8C5C;
+  box-shadow: 0 0 6px rgba(74,140,92,0.8);
+  animation: pulse 2s infinite;
+}
+.connection-dot.offline { background: var(--red); box-shadow: 0 0 6px rgba(172,74,74,0.8); animation:none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.live-label { font-size:0.6rem; letter-spacing:0.2rem; text-transform:uppercase; color: var(--warm-gray); }
+
+.stats-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.8rem 1.5rem;
+  display:flex; gap:2rem; align-items:center; flex-wrap:wrap;
+}
+.stat-item { display:flex; flex-direction:column; gap:0.2rem; }
+.stat-value {
+  font-family:'Cinzel',serif; font-size:1.4rem; font-weight:400;
+  color: var(--gold); line-height:1;
+}
+.stat-label { font-size:0.58rem; letter-spacing:0.18rem; text-transform:uppercase; color:var(--warm-gray); }
+
+.filter-bar {
+  padding: 0.8rem 1.5rem;
+  display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.filter-label { font-size:0.6rem; letter-spacing:0.15rem; text-transform:uppercase; color:var(--warm-gray); margin-right:0.5rem; }
+.filter-btn {
+  background:none; border: 1px solid var(--border);
+  color: var(--warm-gray); padding:0.35rem 0.9rem;
+  font-family:'Raleway',sans-serif; font-size:0.68rem;
+  font-weight:500; letter-spacing:0.1rem; text-transform:uppercase;
+  cursor:pointer; transition: all 0.2s; border-radius:1px;
+}
+.filter-btn:hover { border-color: var(--gold); color:var(--gold); }
+.filter-btn.active { background:var(--gold-pale); border-color:var(--gold); color:var(--gold); }
+
+.btn-clear-all {
+  margin-left:auto;
+  background:none; border: 1px solid var(--red-bg);
+  color: var(--red); padding:0.35rem 0.9rem;
+  font-family:'Raleway',sans-serif; font-size:0.65rem;
+  font-weight:500; letter-spacing:0.1rem; text-transform:uppercase;
+  cursor:pointer; transition: all 0.2s; border-radius:1px;
+}
+.btn-clear-all:hover { background: var(--red-bg); }
+
+/* ── ORDERS GRID ── */
+.orders-container {
+  flex:1; padding: 1.5rem;
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap:1rem;
+  align-content: start;
+}
+
+.empty-state {
+  grid-column: 1/-1;
+  text-align:center; padding:5rem 2rem;
+  color: var(--warm-gray);
+}
+.empty-icon { font-size:3rem; opacity:0.3; margin-bottom:1rem; }
+.empty-state p { font-size:0.85rem; font-weight:300; }
+
+/* ── ORDER CARD ── */
+.order-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius:2px;
+  overflow:hidden;
+  animation: slideIn 0.3s ease;
+  transition: border-color 0.3s;
+}
+.order-card.status-received { border-left: 3px solid var(--gold); }
+.order-card.status-preparing { border-left: 3px solid var(--orange); }
+.order-card.status-delivering { border-left: 3px solid var(--blue); }
+.order-card.status-delivered { border-left: 3px solid var(--green); opacity:0.7; }
+
+@keyframes slideIn {
+  from { opacity:0; transform:translateY(-10px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+/* New order flash */
+.order-card.new-flash {
+  animation: newFlash 1s ease;
+}
+@keyframes newFlash {
+  0%,100% { background: var(--card); }
+  30% { background: rgba(201,168,76,0.2); }
+}
+
+.card-header {
+  padding: 0.8rem 1rem;
+  display:flex; justify-content:space-between; align-items:flex-start;
+  border-bottom: 1px solid var(--border);
+}
+.card-header-left { display:flex; flex-direction:column; gap:0.2rem; }
+.order-id {
+  font-family:'Cinzel',serif; font-size:0.85rem;
+  font-weight:500; color:var(--cream); letter-spacing:0.1em;
+}
+.order-time-loc {
+  font-size:0.7rem; color:var(--warm-gray); font-weight:300;
+  display:flex; gap:0.8rem;
+}
+.order-time-loc span { display:flex; align-items:center; gap:0.3rem; }
+
+.status-badge {
+  font-size:0.58rem; font-weight:600;
+  letter-spacing:0.15rem; text-transform:uppercase;
+  padding:0.25rem 0.7rem; border-radius:1px;
+  white-space:nowrap;
+}
+.badge-received  { background:var(--gold-pale);  color:var(--gold-light); border:1px solid rgba(201,168,76,0.3); }
+.badge-preparing { background:var(--orange-bg); color:var(--orange);     border:1px solid rgba(192,120,64,0.3); }
+.badge-delivering{ background:var(--blue-bg);   color:var(--blue);       border:1px solid rgba(74,122,172,0.3); }
+.badge-delivered { background:var(--green-bg);  color:var(--green);      border:1px solid rgba(74,140,92,0.3); }
+
+.card-guest {
+  padding: 0.6rem 1rem;
+  background: rgba(0,0,0,0.15);
+  display:flex; gap:1.5rem;
+  font-size:0.72rem;
+}
+.card-guest span { display:flex; align-items:center; gap:0.3rem; color:var(--warm-gray); }
+.card-guest strong { color:var(--cream); font-weight:500; }
+
+.card-items {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.order-item-row {
+  display:flex; justify-content:space-between; align-items:baseline;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size:0.8rem;
+}
+.order-item-row:last-child { border:none; }
+.item-name-col { color:var(--cream); font-weight:400; }
+.item-qty-col { color:var(--gold); font-weight:600; font-size:0.75rem; margin-right:0.5rem; }
+.item-price-col { color:var(--warm-gray); font-size:0.72rem; white-space:nowrap; }
+.item-note-inline {
+  font-size:0.65rem; color:var(--warm-gray);
+  font-style:italic; display:block; margin-top:0.1rem;
+}
+
+.card-special {
+  padding: 0.5rem 1rem;
+  background: rgba(201,168,76,0.06);
+  border-bottom: 1px solid var(--border);
+  font-size:0.72rem; color:var(--warm-gray); font-style:italic;
+  border-left:2px solid var(--gold);
+}
+
+.card-total-row {
+  padding: 0.5rem 1rem;
+  display:flex; justify-content:space-between; align-items:center;
+  border-bottom: 1px solid var(--border);
+}
+.total-label { font-size:0.6rem; letter-spacing:0.15rem; text-transform:uppercase; color:var(--warm-gray); }
+.total-amount { font-family:'Cinzel',serif; font-size:1.1rem; color:var(--cream); }
+
+/* ── ACTION BUTTONS ── */
+.card-actions {
+  padding: 0.8rem 1rem;
+  display:flex; gap:0.5rem; flex-wrap:wrap;
+}
+.action-btn {
+  flex:1; min-width:80px;
+  padding:0.5rem 0.5rem;
+  font-family:'Cinzel',serif; font-size:0.58rem;
+  font-weight:500; letter-spacing:0.12rem; text-transform:uppercase;
+  border:none; cursor:pointer; border-radius:1px;
+  transition: all 0.15s; white-space:nowrap;
+}
+.btn-preparing { background:var(--orange-bg); color:var(--orange); border:1px solid rgba(192,120,64,0.4); }
+.btn-preparing:hover { background: rgba(192,120,64,0.3); }
+.btn-delivering { background:var(--blue-bg); color:var(--blue); border:1px solid rgba(74,122,172,0.4); }
+.btn-delivering:hover { background: rgba(74,122,172,0.3); }
+.btn-delivered  { background:var(--green-bg); color:var(--green); border:1px solid rgba(74,140,92,0.4); }
+.btn-delivered:hover  { background: rgba(74,140,92,0.3); }
+.btn-delete { background:var(--red-bg); color:var(--red); border:1px solid rgba(172,74,74,0.3); flex:0; min-width:36px; }
+.btn-delete:hover { background: rgba(172,74,74,0.25); }
+.btn-done { background: var(--green-bg); color:var(--green); border:1px solid rgba(74,140,92,0.4); }
+.btn-done:disabled { opacity:0.4; cursor:default; }
+
+/* ── NOTIFICATION TOAST ── */
+.notif-container {
+  position:fixed; top:70px; right:1.5rem; z-index:200;
+  display:flex; flex-direction:column; gap:0.5rem;
+  pointer-events:none;
+}
+.notif {
+  background: var(--surface);
+  border: 1px solid var(--gold);
+  border-left:3px solid var(--gold);
+  padding: 0.8rem 1.2rem;
+  max-width:320px;
+  animation: notifIn 0.3s ease, notifOut 0.3s 4.7s ease forwards;
+  pointer-events:all;
+}
+.notif-title { font-family:'Cinzel',serif; font-size:0.72rem; letter-spacing:0.1em; color:var(--gold); margin-bottom:0.3rem; }
+.notif-body { font-size:0.75rem; color:var(--cream); font-weight:300; }
+@keyframes notifIn  { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes notifOut { from{opacity:1} to{opacity:0;transform:translateX(20px)} }
+
+/* ── AUDIO BUTTON ── */
+.audio-btn {
+  background:none; border:1px solid var(--border);
+  color:var(--warm-gray); padding:0.3rem 0.7rem;
+  font-size:0.85rem; cursor:pointer; border-radius:1px;
+  transition: all 0.2s;
+}
+.audio-btn:hover { border-color:var(--gold); color:var(--gold); }
+.audio-btn.on { border-color:var(--green); color:var(--green); }
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .orders-container { grid-template-columns:1fr; padding:1rem; }
+  .stats-bar { gap:1rem; }
+  .filter-bar { gap:0.4rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-logo">
+    <h1>Villafontana</h1>
+    <p>Manager · Dashboard Ordini</p>
+  </div>
+  <div class="login-card">
+    <h2>Accesso Staff</h2>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="pwd-input" placeholder="••••••••"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-error" id="login-error">Password non corretta</div>
+    <button class="btn-login" onclick="doLogin()">Accedi</button>
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div id="app">
+
+  <div class="top-bar">
+    <div class="top-bar-logo">Villa<span>fontana</span> · Ordini</div>
+    <div class="top-bar-right">
+      <button class="audio-btn" id="audio-btn" onclick="toggleAudio()" title="Notifica sonora">🔔</button>
+      <span class="live-label">Live</span>
+      <div class="connection-dot" id="conn-dot"></div>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-item">
+      <span class="stat-value" id="stat-total">0</span>
+      <span class="stat-label">Ordini oggi</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value" id="stat-pending">0</span>
+      <span class="stat-label">Da gestire</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value" id="stat-preparing">0</span>
+      <span class="stat-label">In cucina</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value" id="stat-revenue">€0</span>
+      <span class="stat-label">Incasso sessione</span>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-label">Filtra:</span>
+    <button class="filter-btn active" onclick="setFilter('all')" id="f-all">Tutti</button>
+    <button class="filter-btn" onclick="setFilter('received')" id="f-received">⚡ Nuovi</button>
+    <button class="filter-btn" onclick="setFilter('preparing')" id="f-preparing">👨‍🍳 In cucina</button>
+    <button class="filter-btn" onclick="setFilter('delivering')" id="f-delivering">🛎 In consegna</button>
+    <button class="filter-btn" onclick="setFilter('delivered')" id="f-delivered">✅ Consegnati</button>
+    <button class="btn-clear-all" onclick="clearDelivered()">Rimuovi consegnati</button>
+  </div>
+
+  <div class="orders-container" id="orders-container">
+    <div class="empty-state">
+      <div class="empty-icon">🍽</div>
+      <p>In attesa di connessione Firebase…<br>
+      Configura le credenziali per iniziare.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Notification area -->
+<div class="notif-container" id="notif-container"></div>
+
+<script>
+/* ══════════════════════════════════════
+   LOGIN
+══════════════════════════════════════ */
+// Password manager: cambia qui la password
+const MANAGER_PWD_HASH = btoa(unescape(encodeURIComponent('VillaFontana2026')));
+
+function doLogin(){
+  const input = document.getElementById('pwd-input').value;
+  const hash = btoa(unescape(encodeURIComponent(input)));
+  if(hash === MANAGER_PWD_HASH){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    requestNotifPermission();
+  } else {
+    const err = document.getElementById('login-error');
+    err.style.display = 'block';
+    document.getElementById('pwd-input').style.borderColor = '#AC4A4A';
+    setTimeout(()=>{ err.style.display='none'; document.getElementById('pwd-input').style.borderColor=''; }, 3000);
+  }
+}
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+let currentFilter = 'all';
+let audioEnabled = false;
+let knownIds = new Set();
+let ordersCache = {};
+
+/* ══════════════════════════════════════
+   RENDER ORDERS (called by Firebase listener)
+══════════════════════════════════════ */
+window.renderOrders = function(data) {
+  ordersCache = data || {};
+  const container = document.getElementById('orders-container');
+
+  // Detect new orders for notification
+  if(data){
+    Object.entries(data).forEach(([key, order]) => {
+      if(!knownIds.has(key)){
+        knownIds.add(key);
+        if(knownIds.size > 1){ // skip first load
+          showNotif('Nuovo ordine ricevuto!', `${order.guest} · ${order.location} · ${order.room}`);
+          playBeep();
+        }
+      }
+    });
+  }
+
+  updateStats(data);
+
+  const filtered = filterOrders(data);
+
+  if(!filtered || filtered.length === 0){
+    const msg = !data
+      ? 'Connetti Firebase per ricevere gli ordini in tempo reale.'
+      : currentFilter === 'all'
+        ? 'Nessun ordine ancora. In attesa…'
+        : 'Nessun ordine con questo stato.';
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🍽</div><p>${msg}</p></div>`;
+    return;
+  }
+
+  // Sort: newest first, then by status priority
+  filtered.sort((a,b) => {
+    const priority = {received:0, preparing:1, delivering:2, delivered:3};
+    const pd = (priority[a.status]||0) - (priority[b.status]||0);
+    return pd !== 0 ? pd : (b.order.timestamp||0) - (a.order.timestamp||0);
+  });
+
+  container.innerHTML = filtered.map(({key, order}) => orderCard(key, order)).join('');
+};
+
+function filterOrders(data){
+  if(!data) return [];
+  return Object.entries(data)
+    .map(([key, order]) => ({key, order}))
+    .filter(({order}) => currentFilter === 'all' || order.status === currentFilter);
+}
+
+/* ══════════════════════════════════════
+   ORDER CARD HTML
+══════════════════════════════════════ */
+const STATUS_LABELS = { received:'Nuovo', preparing:'In Cucina', delivering:'In Consegna', delivered:'Consegnato' };
+const STATUS_BADGE  = { received:'badge-received', preparing:'badge-preparing', delivering:'badge-delivering', delivered:'badge-delivered' };
+
+function orderCard(key, o){
+  const time = o.time || new Date(o.timestamp||0).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  const total = (o.total||0).toFixed(2).replace('.',',');
+
+  const itemsHtml = (o.items||[]).map(i => `
+    <div class="order-item-row">
+      <div>
+        <span class="item-name-col">${i.emoji||''} ${i.name}</span>
+        ${i.note ? `<span class="item-note-inline">↳ ${i.note}</span>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:0.3rem;flex-shrink:0">
+        <span class="item-qty-col">${i.qty}×</span>
+        <span class="item-price-col">€ ${((i.price||0)*i.qty).toFixed(2).replace('.',',')}</span>
+      </div>
+    </div>
+  `).join('');
+
+  const specialHtml = o.specialReq
+    ? `<div class="card-special">📝 ${o.specialReq}</div>` : '';
+
+  // Determine action buttons based on current status
+  let actionsHtml = '';
+  if(o.status === 'received'){
+    actionsHtml = `
+      <button class="action-btn btn-preparing" onclick="setStatus('${key}','preparing')">👨‍🍳 Prendi in carico</button>
+      <button class="action-btn btn-delete" onclick="deleteOrder('${key}')" title="Elimina">✕</button>`;
+  } else if(o.status === 'preparing'){
+    actionsHtml = `
+      <button class="action-btn btn-delivering" onclick="setStatus('${key}','delivering')">🛎 Manda in consegna</button>
+      <button class="action-btn btn-delete" onclick="deleteOrder('${key}')" title="Elimina">✕</button>`;
+  } else if(o.status === 'delivering'){
+    actionsHtml = `
+      <button class="action-btn btn-delivered" onclick="setStatus('${key}','delivered')">✅ Consegnato</button>
+      <button class="action-btn btn-delete" onclick="deleteOrder('${key}')" title="Elimina">✕</button>`;
+  } else if(o.status === 'delivered'){
+    actionsHtml = `
+      <button class="action-btn btn-delete" onclick="deleteOrder('${key}')" title="Rimuovi">✕ Rimuovi</button>`;
+  }
+
+  return `
+  <div class="order-card status-${o.status}" id="card-${key}">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="order-id">${o.id||key}</div>
+        <div class="order-time-loc">
+          <span>⏱ ${time}</span>
+        </div>
+      </div>
+      <span class="status-badge ${STATUS_BADGE[o.status]||'badge-received'}">${STATUS_LABELS[o.status]||o.status}</span>
+    </div>
+    <div class="card-guest">
+      <span>👤 <strong>${o.guest||'—'}</strong></span>
+      <span>🛏 <strong>${o.room||'—'}</strong></span>
+      <span>📍 <strong>${o.location||'—'}</strong></span>
+    </div>
+    <div class="card-items">${itemsHtml}</div>
+    ${specialHtml}
+    <div class="card-total-row">
+      <span class="total-label">Totale ordine</span>
+      <span class="total-amount">€ ${total}</span>
+    </div>
+    <div class="card-actions">${actionsHtml}</div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════
+   ACTIONS
+══════════════════════════════════════ */
+function setStatus(key, status){
+  if(window._updateStatus) window._updateStatus(key, status);
+}
+
+function deleteOrder(key){
+  if(window._deleteOrder) window._deleteOrder(key);
+}
+
+function clearDelivered(){
+  if(!ordersCache || !window._deleteOrder) return;
+  Object.entries(ordersCache).forEach(([key, order]) => {
+    if(order.status === 'delivered') window._deleteOrder(key);
+  });
+}
+
+/* ══════════════════════════════════════
+   FILTER
+══════════════════════════════════════ */
+function setFilter(f){
+  currentFilter = f;
+  ['all','received','preparing','delivering','delivered'].forEach(id => {
+    const el = document.getElementById('f-'+id);
+    if(el) el.classList.toggle('active', id === f);
+  });
+  window.renderOrders(ordersCache);
+}
+
+/* ══════════════════════════════════════
+   STATS
+══════════════════════════════════════ */
+function updateStats(data){
+  if(!data){ return; }
+  const orders = Object.values(data);
+  const total = orders.length;
+  const pending = orders.filter(o=>o.status==='received').length;
+  const preparing = orders.filter(o=>o.status==='preparing').length;
+  const revenue = orders.reduce((s,o)=>s+(o.total||0),0);
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('stat-preparing').textContent = preparing;
+  document.getElementById('stat-revenue').textContent = '€' + revenue.toFixed(0);
+
+  // Flash badge when new pending
+  if(pending > 0){
+    document.title = `(${pending}) Villa Fontana · Ordini`;
+  } else {
+    document.title = 'Villa Fontana · Ordini';
+  }
+}
+
+/* ══════════════════════════════════════
+   NOTIFICATIONS
+══════════════════════════════════════ */
+function requestNotifPermission(){
+  if('Notification' in window && Notification.permission === 'default'){
+    Notification.requestPermission();
+  }
+}
+
+function showNotif(title, body){
+  // Browser notification
+  if('Notification' in window && Notification.permission === 'granted'){
+    new Notification('🍽 ' + title, { body, icon: '' });
+  }
+  // In-app toast
+  const container = document.getElementById('notif-container');
+  const el = document.createElement('div');
+  el.className = 'notif';
+  el.innerHTML = `<div class="notif-title">🔔 ${title}</div><div class="notif-body">${body}</div>`;
+  container.appendChild(el);
+  setTimeout(()=>{ el.remove(); }, 5000);
+}
+
+/* ══════════════════════════════════════
+   AUDIO BEEP
+══════════════════════════════════════ */
+let audioCtx = null;
+function toggleAudio(){
+  audioEnabled = !audioEnabled;
+  const btn = document.getElementById('audio-btn');
+  btn.classList.toggle('on', audioEnabled);
+  btn.textContent = audioEnabled ? '🔔' : '🔕';
+  if(audioEnabled) playBeep(); // test beep
+}
+
+function playBeep(){
+  if(!audioEnabled) return;
+  try {
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.frequency.setValueAtTime(880, audioCtx.currentTime);
+    o.frequency.setValueAtTime(660, audioCtx.currentTime + 0.1);
+    g.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+    o.start(); o.stop(audioCtx.currentTime + 0.4);
+  } catch(e){}
+}
+
+/* ══════════════════════════════════════
+   KEYBOARD SHORTCUT
+══════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none'){
+    doLogin();
+  }
+});
+</script>
+</body>
+</html>
