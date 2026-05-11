@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, update, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 const firebaseConfig = {
   apiKey: "AIzaSyAvTB_64X3ice0zhN-0GjnYswQLE5W23Cc",
   authDomain: "villa-f.firebaseapp.com",
@@ -19,352 +19,410 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 window._fbDB=db; window._fbRef=ref; window._fbPush=push;
 window._fbOnValue=onValue; window._fbUpdate=update;
+window._fbSet=set; window._fbGet=get;
 window._fbReady=true;
 window.dispatchEvent(new Event('firebase-ready'));
 </script>
 <style>
 :root{
-  --teal:        #4E9B8F;
-  --teal-dark:   #3A7A70;
-  --teal-light:  #7ABDB5;
-  --teal-pale:   rgba(78,155,143,0.09);
-  --teal-border: rgba(78,155,143,0.25);
-  --charcoal:    #2C3035;
-  --charcoal2:   #1E2226;
-  --white:       #FFFFFF;
-  --off-white:   #F8F6F2;
-  --cream:       #F2EDE4;
-  --divider:     #E0D8CC;
-  --gray:        #888078;
-  --mid:         #555048;
-  --gold:        #8B7355;
-  --shadow:      rgba(44,48,53,0.10);
+  --teal:#4E9B8F; --teal-dark:#3A7A70; --teal-light:#7ABDB5;
+  --teal-pale:rgba(78,155,143,0.09); --teal-border:rgba(78,155,143,0.25);
+  --charcoal:#2C3035; --charcoal2:#1E2226;
+  --white:#FFFFFF; --off-white:#F8F6F2; --cream:#F2EDE4;
+  --divider:#E0D8CC; --gray:#888078; --mid:#555048;
+  --shadow:rgba(44,48,53,0.10);
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charcoal);min-height:100vh;overflow-x:hidden;}
 
-/* ══════════════════════════
-   SPLASH
-══════════════════════════ */
+/* ══ LANG SELECTOR SCREEN ══ */
+#lang-screen{
+  position:fixed;inset:0;z-index:2000;
+  background:var(--charcoal2);
+  background-image:url('http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/06/img-1200x630-1.jpg');
+  background-size:cover;background-position:center;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1.8rem;padding:2rem;
+  transition:opacity 0.6s ease;
+}
+#lang-screen::before{content:'';position:absolute;inset:0;background:rgba(20,26,30,0.82);z-index:0;pointer-events:none;}
+#lang-screen>*{position:relative;z-index:1;}
+#lang-screen.hide{opacity:0;pointer-events:none;}
+
+.lang-brand{text-align:center;}
+.lang-ornament{width:70px;margin-bottom:0.5rem;filter:brightness(0) saturate(100%) invert(60%) sepia(40%) saturate(500%) hue-rotate(130deg) brightness(110%);}
+.lang-wordmark{font-family:'Lato',sans-serif;font-size:clamp(1.4rem,4vw,2rem);font-weight:900;letter-spacing:0.3em;text-transform:uppercase;color:var(--white);}
+.lang-sub{font-size:0.58rem;letter-spacing:0.25rem;text-transform:uppercase;color:var(--teal-light);margin-top:0.2rem;}
+
+.lang-title{text-align:center;}
+.lang-title h2{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:400;font-style:italic;color:var(--white);margin-bottom:0.3rem;}
+.lang-title p{font-size:0.6rem;letter-spacing:0.2rem;text-transform:uppercase;color:rgba(255,255,255,0.4);}
+
+.lang-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:0.6rem;
+  width:min(420px,92vw);
+}
+.lang-btn{
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(78,155,143,0.2);
+  color:var(--white);
+  padding:0.7rem 0.5rem;
+  cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:0.3rem;
+  transition:all 0.2s;
+  font-family:'Lato',sans-serif;
+}
+.lang-btn:hover,.lang-btn:active{background:rgba(78,155,143,0.2);border-color:var(--teal);}
+.lang-flag{font-size:1.8rem;line-height:1;}
+.lang-name{font-size:0.6rem;letter-spacing:0.1rem;text-transform:uppercase;font-weight:700;color:rgba(255,255,255,0.7);}
+
+/* ══ SPLASH / CHECK-IN ══ */
 #splash{
   position:fixed;inset:0;z-index:1000;
   background:var(--charcoal2);
   background-image:url('http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/06/img-1200x630-1.jpg');
   background-size:cover;background-position:center;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.5rem;
-  transition:opacity 1s ease;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:2rem;
+  transition:opacity 0.8s ease;
 }
-#splash::before{content:'';position:absolute;inset:0;background:rgba(28,34,38,0.78);z-index:0;pointer-events:none;}
+#splash::before{content:'';position:absolute;inset:0;background:rgba(20,26,30,0.78);z-index:0;pointer-events:none;}
 #splash>*{position:relative;z-index:1;}
+#splash.visible{display:flex;}
 #splash.fade-out{opacity:0;pointer-events:none;}
 
-/* Logo block */
-.splash-brand{text-align:center;display:flex;flex-direction:column;align-items:center;gap:0}
-.splash-ornament{width:90px;margin-bottom:0.6rem;filter:brightness(0) saturate(100%) invert(60%) sepia(40%) saturate(500%) hue-rotate(130deg) brightness(110%);}
-.splash-logo-rule{display:flex;align-items:center;gap:1rem;margin:0.2rem 0;}
-.splash-logo-rule::before,.splash-logo-rule::after{content:'';flex:1;height:1px;background:var(--teal-light);width:28px;}
-.splash-wordmark{font-family:'Lato',sans-serif;font-size:clamp(1.6rem,5vw,2.4rem);font-weight:900;letter-spacing:0.35em;text-transform:uppercase;color:var(--white);}
-.splash-tagline{font-size:0.58rem;letter-spacing:0.3rem;text-transform:uppercase;color:var(--teal-light);margin-top:0.15rem;}
-.splash-stars{color:var(--teal-light);font-size:0.75rem;letter-spacing:0.2rem;margin-top:0.4rem;}
-.splash-service-badge{
-  margin-top:1rem;
-  background:var(--teal);color:var(--white);
-  font-size:0.58rem;letter-spacing:0.28rem;text-transform:uppercase;font-weight:700;
-  padding:0.35rem 1.2rem;
-}
+.splash-brand{text-align:center;display:flex;flex-direction:column;align-items:center;}
+.splash-ornament{width:80px;margin-bottom:0.5rem;filter:brightness(0) saturate(100%) invert(60%) sepia(40%) saturate(500%) hue-rotate(130deg) brightness(110%);}
+.splash-wordmark{font-family:'Lato',sans-serif;font-size:clamp(1.5rem,5vw,2.2rem);font-weight:900;letter-spacing:0.32em;text-transform:uppercase;color:var(--white);}
+.splash-tagline{font-size:0.56rem;letter-spacing:0.25rem;text-transform:uppercase;color:var(--teal-light);margin-top:0.2rem;}
+.splash-stars{color:var(--teal-light);font-size:0.7rem;letter-spacing:0.2rem;margin-top:0.3rem;}
+.splash-badge{margin-top:0.7rem;background:var(--teal);color:var(--white);font-size:0.55rem;letter-spacing:0.25rem;text-transform:uppercase;font-weight:700;padding:0.28rem 1rem;}
 
-.checkin-card{
-  background:rgba(255,255,255,0.06);
-  border:1px solid var(--teal-border);
-  padding:2.2rem 2.8rem;width:min(420px,90vw);
-  backdrop-filter:blur(10px);
+/* Returning guest screen */
+#returning-screen{
+  position:fixed;inset:0;z-index:1000;
+  background:var(--charcoal2);
+  background-image:url('http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/06/img-1200x630-1.jpg');
+  background-size:cover;background-position:center;
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:2rem;
+  transition:opacity 0.8s ease;
 }
-.checkin-card h2{
-  font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:400;font-style:italic;
-  color:var(--teal-light);text-align:center;margin-bottom:1.8rem;
-}
-.field-group{margin-bottom:1.1rem;}
-.field-group label{display:block;font-size:0.58rem;letter-spacing:0.22rem;text-transform:uppercase;color:var(--teal-light);margin-bottom:0.45rem;font-weight:700;}
-.field-group select,.field-group input{
-  width:100%;background:rgba(255,255,255,0.07);border:none;
-  border-bottom:1px solid rgba(122,189,181,0.35);
-  padding:0.65rem 0.1rem;color:var(--white);
-  font-family:'Lato',sans-serif;font-size:0.88rem;font-weight:300;
-  outline:none;transition:border-color 0.2s;-webkit-appearance:none;border-radius:0;
-}
+#returning-screen::before{content:'';position:absolute;inset:0;background:rgba(20,26,30,0.82);z-index:0;pointer-events:none;}
+#returning-screen>*{position:relative;z-index:1;}
+#returning-screen.visible{display:flex;}
+
+.ret-card{background:rgba(255,255,255,0.07);border:1px solid var(--teal-border);padding:2.5rem 3rem;width:min(400px,90vw);text-align:center;backdrop-filter:blur(10px);}
+.ret-ornament{width:50px;filter:brightness(0) saturate(100%) invert(60%) sepia(40%) saturate(500%) hue-rotate(130deg) brightness(110%);margin-bottom:1rem;}
+.ret-welcome{font-family:'Playfair Display',serif;font-size:1rem;font-weight:400;font-style:italic;color:var(--teal-light);margin-bottom:0.5rem;}
+.ret-name{font-family:'Lato',sans-serif;font-size:1.8rem;font-weight:900;color:var(--white);letter-spacing:0.05em;margin-bottom:0.3rem;}
+.ret-room{font-size:0.62rem;letter-spacing:0.2rem;text-transform:uppercase;color:var(--teal-light);margin-bottom:1.5rem;}
+
+.field-group-ret{margin-bottom:1rem;}
+.field-group-ret label{display:block;font-size:0.56rem;letter-spacing:0.2rem;text-transform:uppercase;color:var(--teal-light);margin-bottom:0.4rem;font-weight:700;}
+.field-group-ret select{width:100%;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(122,189,181,0.35);padding:0.6rem 0.1rem;color:var(--white);font-family:'Lato',sans-serif;font-size:0.88rem;font-weight:300;outline:none;-webkit-appearance:none;}
+.field-group-ret select option{background:#2C3035;}
+
+.btn-continue{width:100%;background:var(--teal);color:var(--white);border:none;padding:0.85rem;font-family:'Lato',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.25rem;text-transform:uppercase;cursor:pointer;transition:all 0.2s;margin-top:0.5rem;}
+.btn-continue:hover{background:var(--teal-dark);}
+.btn-not-me{background:none;border:none;color:rgba(255,255,255,0.35);font-size:0.65rem;cursor:pointer;margin-top:0.8rem;font-family:'Lato',sans-serif;text-decoration:underline;transition:color 0.2s;}
+.btn-not-me:hover{color:rgba(255,255,255,0.6);}
+
+.checkin-card{background:rgba(255,255,255,0.06);border:1px solid var(--teal-border);padding:2rem 2.5rem;width:min(400px,90vw);backdrop-filter:blur(10px);}
+.checkin-card h2{font-family:'Playfair Display',serif;font-size:1rem;font-weight:400;font-style:italic;color:var(--teal-light);text-align:center;margin-bottom:1.5rem;}
+.field-group{margin-bottom:1rem;}
+.field-group label{display:block;font-size:0.56rem;letter-spacing:0.2rem;text-transform:uppercase;color:var(--teal-light);margin-bottom:0.4rem;font-weight:700;}
+.field-group select,.field-group input{width:100%;background:rgba(255,255,255,0.07);border:none;border-bottom:1px solid rgba(122,189,181,0.35);padding:0.65rem 0.1rem;color:var(--white);font-family:'Lato',sans-serif;font-size:0.88rem;font-weight:300;outline:none;transition:border-color 0.2s;-webkit-appearance:none;border-radius:0;}
 .field-group select option{background:#2C3035;color:var(--white);}
 .field-group select:focus,.field-group input:focus{border-bottom-color:var(--teal-light);}
 .field-group input::placeholder{color:rgba(255,255,255,0.28);}
-.btn-checkin{
-  width:100%;background:transparent;border:1px solid var(--teal);
-  color:var(--teal-light);padding:0.85rem;
-  font-family:'Lato',sans-serif;font-size:0.62rem;font-weight:700;
-  letter-spacing:0.28rem;text-transform:uppercase;cursor:pointer;margin-top:0.6rem;
-  transition:all 0.25s;
-}
+.btn-checkin{width:100%;background:transparent;border:1px solid var(--teal);color:var(--teal-light);padding:0.85rem;font-family:'Lato',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.26rem;text-transform:uppercase;cursor:pointer;margin-top:0.6rem;transition:all 0.25s;}
 .btn-checkin:hover{background:var(--teal);color:var(--white);}
-.splash-footer{font-size:0.58rem;letter-spacing:0.2rem;text-transform:uppercase;color:rgba(255,255,255,0.22);}
+.splash-footer{font-size:0.56rem;letter-spacing:0.18rem;text-transform:uppercase;color:rgba(255,255,255,0.22);}
 
-/* ══════════════════════════
-   APP SHELL
-══════════════════════════ */
+/* ══ APP ══ */
 #app{display:none;min-height:100vh;flex-direction:column;}
 #app.visible{display:flex;}
 
-/* Header */
-.app-header{
-  background:var(--charcoal);
-  padding:0 1.5rem;height:60px;
-  display:flex;align-items:center;justify-content:space-between;
-  position:sticky;top:0;z-index:100;
-}
-.header-brand{display:flex;align-items:center;gap:0.8rem;}
-.header-ornament{width:30px;filter:brightness(0) saturate(100%) invert(60%) sepia(40%) saturate(500%) hue-rotate(130deg) brightness(110%);}
+.app-header{background:var(--charcoal);padding:0 1.5rem;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.header-brand{display:flex;align-items:center;gap:0.7rem;}
+.header-ornament{width:28px;filter:brightness(0) saturate(100%) invert(60%) sepia(40%) saturate(500%) hue-rotate(130deg) brightness(110%);}
 .header-text{display:flex;flex-direction:column;line-height:1.1;}
-.header-wordmark{font-family:'Lato',sans-serif;font-size:0.85rem;font-weight:900;letter-spacing:0.25em;text-transform:uppercase;color:var(--white);}
-.header-sub{font-size:0.5rem;letter-spacing:0.2rem;text-transform:uppercase;color:var(--teal-light);}
+.header-wordmark{font-family:'Lato',sans-serif;font-size:0.82rem;font-weight:900;letter-spacing:0.22em;text-transform:uppercase;color:var(--white);}
+.header-sub{font-size:0.48rem;letter-spacing:0.18rem;text-transform:uppercase;color:var(--teal-light);}
 .header-right{display:flex;align-items:center;gap:1rem;}
 .guest-pill{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;}
-.guest-pill .gname{font-size:0.78rem;font-weight:700;color:var(--white);}
-.guest-pill .groom{font-size:0.58rem;letter-spacing:0.12rem;text-transform:uppercase;color:var(--teal-light);}
-.cart-btn{
-  background:none;border:1px solid rgba(78,155,143,0.4);
-  color:var(--teal-light);padding:0.38rem 0.85rem;
-  font-size:0.9rem;cursor:pointer;display:flex;align-items:center;gap:0.4rem;
-  transition:all 0.2s;position:relative;
-}
+.guest-pill .gname{font-size:0.76rem;font-weight:700;color:var(--white);}
+.guest-pill .groom{font-size:0.56rem;letter-spacing:0.12rem;text-transform:uppercase;color:var(--teal-light);}
+.cart-btn{background:none;border:1px solid rgba(78,155,143,0.4);color:var(--teal-light);padding:0.36rem 0.82rem;font-size:0.88rem;cursor:pointer;display:flex;align-items:center;gap:0.4rem;transition:all 0.2s;position:relative;}
 .cart-btn:hover{border-color:var(--teal);background:rgba(78,155,143,0.12);}
-.cart-count{
-  background:var(--teal);color:var(--white);
-  font-size:0.52rem;font-weight:700;
-  width:16px;height:16px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  position:absolute;top:-5px;right:-5px;
-}
+.cart-count{background:var(--teal);color:var(--white);font-size:0.52rem;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:absolute;top:-5px;right:-5px;}
 .cart-count.hidden{display:none;}
 
-/* Location bar */
-.location-bar{
-  background:var(--teal-dark);padding:0.55rem 1.5rem;
-  display:flex;align-items:center;gap:0.7rem;
-  border-bottom:1px solid rgba(255,255,255,0.06);
-}
-.loc-label{font-size:0.56rem;letter-spacing:0.18rem;text-transform:uppercase;color:rgba(255,255,255,0.5);font-weight:700;}
+.location-bar{background:var(--teal-dark);padding:0.55rem 1.5rem;display:flex;align-items:center;gap:0.7rem;}
+.loc-label{font-size:0.54rem;letter-spacing:0.16rem;text-transform:uppercase;color:rgba(255,255,255,0.5);font-weight:700;}
 .loc-select{background:none;border:none;color:var(--white);font-family:'Playfair Display',serif;font-size:0.88rem;font-style:italic;cursor:pointer;outline:none;-webkit-appearance:none;}
 .loc-select option{background:var(--teal-dark);}
 
-/* Category nav */
-.cat-nav{
-  background:var(--white);border-bottom:2px solid var(--divider);
-  display:flex;overflow-x:auto;scrollbar-width:none;padding:0 1.2rem;
-}
+.cat-nav{background:var(--white);border-bottom:2px solid var(--divider);display:flex;overflow-x:auto;scrollbar-width:none;padding:0 1.2rem;}
 .cat-nav::-webkit-scrollbar{display:none;}
-.cat-btn{
-  background:none;border:none;border-bottom:2px solid transparent;
-  padding:0.9rem 1.1rem;font-family:'Lato',sans-serif;
-  font-size:0.58rem;font-weight:700;letter-spacing:0.18rem;text-transform:uppercase;
-  color:var(--gray);cursor:pointer;white-space:nowrap;transition:all 0.2s;flex-shrink:0;
-  margin-bottom:-2px;
-}
+.cat-btn{background:none;border:none;border-bottom:2px solid transparent;padding:0.88rem 1rem;font-family:'Lato',sans-serif;font-size:0.57rem;font-weight:700;letter-spacing:0.16rem;text-transform:uppercase;color:var(--gray);cursor:pointer;white-space:nowrap;transition:all 0.2s;flex-shrink:0;margin-bottom:-2px;}
 .cat-btn:hover{color:var(--teal-dark);}
 .cat-btn.active{color:var(--teal-dark);border-bottom-color:var(--teal);}
 
-/* ══════════════════════════
-   MENU
-══════════════════════════ */
-.menu-wrap{max-width:960px;margin:0 auto;padding:2.5rem 1.5rem 6rem;}
-.section-head{margin-bottom:2rem;text-align:center;}
-.section-eyebrow{font-size:0.58rem;letter-spacing:0.28rem;text-transform:uppercase;color:var(--teal);font-weight:700;display:block;margin-bottom:0.7rem;}
-.section-title{font-family:'Playfair Display',serif;font-size:1.75rem;font-weight:400;color:var(--charcoal);}
-.section-rule{width:36px;height:2px;background:var(--teal);margin:0.7rem auto 0;}
+/* ══ MENU ══ */
+.menu-wrap{max-width:960px;margin:0 auto;padding:0 0 6rem;}
+.section-head{margin:1.5rem 1.5rem 1rem;text-align:center;}
+.section-eyebrow{font-size:0.56rem;letter-spacing:0.26rem;text-transform:uppercase;color:var(--teal);font-weight:700;display:block;margin-bottom:0.6rem;}
+.section-title{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:400;color:var(--charcoal);}
+.section-rule{width:34px;height:2px;background:var(--teal);margin:0.6rem auto 0;}
 
-.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:1.5rem;}
-
+.menu-grid{display:grid;grid-template-columns:1fr;gap:0;}
 .menu-item{
-  background:var(--white);border:1px solid var(--divider);overflow:hidden;
-  cursor:pointer;transition:box-shadow 0.25s,transform 0.25s;
+  background:var(--white);
+  border-bottom:1px solid var(--divider);
+  overflow:hidden;cursor:pointer;
+  transition:background 0.2s;
+  display:flex;align-items:stretch;
+  min-height:110px;
 }
-.menu-item:hover{box-shadow:0 6px 28px var(--shadow);transform:translateY(-3px);}
+.menu-item:hover{background:rgba(78,155,143,0.04);}
 .menu-item.no-price{cursor:default;}
-.menu-item.no-price:hover{transform:none;box-shadow:none;}
+.menu-item.no-price:hover{background:var(--white);}
 
-.item-photo{height:180px;background:var(--cream);overflow:hidden;position:relative;}
-.item-photo img{width:100%;height:100%;object-fit:cover;transition:transform 0.4s ease;display:block;}
+/* Photo — square left column */
+.item-photo{
+  width:110px;min-width:110px;
+  background:var(--cream);
+  overflow:hidden;position:relative;
+  flex-shrink:0;
+}
+.item-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.4s ease;}
 .menu-item:hover .item-photo img{transform:scale(1.05);}
-.item-photo .fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--cream);}
-.item-tag{position:absolute;top:0.8rem;left:0.8rem;z-index:2;font-size:0.52rem;font-weight:700;letter-spacing:0.1rem;text-transform:uppercase;padding:0.22rem 0.6rem;}
+.item-photo .fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.5rem;background:var(--cream);}
+.item-tag{position:absolute;top:0.5rem;left:0.5rem;z-index:2;font-size:0.48rem;font-weight:700;letter-spacing:0.1rem;text-transform:uppercase;padding:0.18rem 0.5rem;}
 .tag-chef{background:var(--charcoal);color:var(--teal-light);}
 .tag-new{background:var(--teal);color:var(--white);}
 .tag-veg{background:#4A7C59;color:var(--white);}
 
-.item-body{padding:1rem 1.1rem 1.2rem;}
-.item-name{font-family:'Playfair Display',serif;font-size:0.98rem;font-weight:500;color:var(--charcoal);margin-bottom:0.3rem;line-height:1.3;}
-.item-desc{font-size:0.73rem;color:var(--gray);font-weight:300;line-height:1.6;margin-bottom:0.9rem;min-height:2.4em;}
-.item-foot{display:flex;align-items:center;justify-content:space-between;}
-.item-price{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:400;color:var(--charcoal);}
+/* Body — right column, full height */
+.item-body{
+  flex:1;
+  padding:1rem 1.2rem;
+  display:flex;flex-direction:column;justify-content:center;
+  min-width:0;
+}
+.item-name{
+  font-family:'Playfair Display',serif;
+  font-size:1.05rem;font-weight:500;
+  color:var(--charcoal);
+  margin-bottom:0.25rem;line-height:1.3;
+}
+.item-desc{
+  font-size:0.75rem;color:var(--gray);
+  font-weight:300;line-height:1.5;
+  margin-bottom:0.7rem;
+}
+.item-foot{display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.item-price{
+  font-family:'Playfair Display',serif;
+  font-size:1.15rem;font-weight:400;color:var(--charcoal);
+}
 .item-price-na{font-size:0.68rem;color:var(--gray);font-style:italic;}
 .add-btn{
   background:var(--teal);color:var(--white);border:none;
-  width:30px;height:30px;border-radius:50%;font-size:1rem;
+  width:36px;height:36px;border-radius:50%;font-size:1.1rem;
   cursor:pointer;display:flex;align-items:center;justify-content:center;
   transition:all 0.15s;flex-shrink:0;
 }
 .add-btn:hover{background:var(--teal-dark);}
-.add-btn.in-cart{background:var(--teal-dark);font-size:0.7rem;font-weight:700;}
+.add-btn.in-cart{background:var(--teal-dark);font-size:0.75rem;font-weight:700;}
 
-/* Degustazione */
-.deg-card{background:var(--white);border:1px solid var(--divider);border-top:3px solid var(--teal);padding:2rem 2.5rem;max-width:600px;}
-.deg-price-row{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:1.2rem;border-bottom:1px solid var(--divider);margin-bottom:1.5rem;}
-.deg-price-label{font-size:0.6rem;letter-spacing:0.18rem;text-transform:uppercase;color:var(--gray);}
-.deg-price{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:400;color:var(--teal-dark);}
-.deg-portate{display:flex;flex-direction:column;gap:0.8rem;margin-bottom:1.8rem;}
-.deg-portata{display:flex;gap:1rem;align-items:flex-start;padding-bottom:0.8rem;border-bottom:1px solid var(--cream);}
+.deg-card{background:var(--white);border:1px solid var(--divider);border-top:3px solid var(--teal);padding:1.8rem 2.2rem;max-width:580px;}
+.deg-price-row{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:1.1rem;border-bottom:1px solid var(--divider);margin-bottom:1.3rem;}
+.deg-price-label{font-size:0.58rem;letter-spacing:0.16rem;text-transform:uppercase;color:var(--gray);}
+.deg-price{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:400;color:var(--teal-dark);}
+.deg-portate{display:flex;flex-direction:column;gap:0.7rem;margin-bottom:1.6rem;}
+.deg-portata{display:flex;gap:0.9rem;align-items:flex-start;padding-bottom:0.7rem;border-bottom:1px solid var(--cream);}
 .deg-portata:last-child{border:none;}
-.deg-num{font-family:'Playfair Display',serif;font-size:0.75rem;color:var(--teal);min-width:1.4rem;margin-top:0.1rem;}
-.deg-portata-name{font-size:0.85rem;color:var(--charcoal);font-weight:300;line-height:1.5;}
-.btn-add-deg{width:100%;background:var(--teal);color:var(--white);border:none;padding:0.9rem;font-family:'Lato',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.25rem;text-transform:uppercase;cursor:pointer;transition:background 0.2s;}
+.deg-num{font-family:'Playfair Display',serif;font-size:0.72rem;color:var(--teal);min-width:1.3rem;margin-top:0.1rem;}
+.deg-portata-name{font-size:0.83rem;color:var(--charcoal);font-weight:300;line-height:1.5;}
+.btn-add-deg{width:100%;background:var(--teal);color:var(--white);border:none;padding:0.88rem;font-family:'Lato',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.22rem;text-transform:uppercase;cursor:pointer;transition:background 0.2s;}
 .btn-add-deg:hover{background:var(--teal-dark);}
 
-/* ══════════════════════════
-   ORDERS PANEL (cliente)
-══════════════════════════ */
-.orders-wrap{display:none;max-width:960px;margin:0 auto;padding:2.5rem 1.5rem 6rem;}
+/* ══ ORDERS PANEL ══ */
+.orders-wrap{display:none;max-width:960px;margin:0 auto;padding:2rem 1.5rem 6rem;}
 .orders-wrap.visible{display:block;}
 .order-card{background:var(--white);border:1px solid var(--divider);border-left:3px solid var(--teal);margin-bottom:1rem;overflow:hidden;animation:fadeUp 0.3s ease;}
-.order-card-head{background:var(--charcoal);padding:0.75rem 1.1rem;display:flex;justify-content:space-between;align-items:center;}
-.order-id-text{font-family:'Playfair Display',serif;font-size:0.9rem;color:var(--white);}
-.order-time-text{font-size:0.62rem;color:var(--gray);}
-.order-status-badge{font-size:0.52rem;font-weight:700;letter-spacing:0.12rem;text-transform:uppercase;padding:0.2rem 0.65rem;}
+.order-card-head{background:var(--charcoal);padding:0.72rem 1.1rem;display:flex;justify-content:space-between;align-items:center;}
+.order-id-text{font-family:'Playfair Display',serif;font-size:0.88rem;color:var(--white);}
+.order-time-text{font-size:0.6rem;color:var(--gray);}
+.order-status-badge{font-size:0.5rem;font-weight:700;letter-spacing:0.1rem;text-transform:uppercase;padding:0.18rem 0.6rem;}
 .s-received{background:rgba(78,155,143,0.18);color:var(--teal-light);}
 .s-preparing{background:rgba(176,104,48,0.18);color:#C07840;}
 .s-delivering{background:rgba(58,106,156,0.18);color:#4A7AAC;}
 .s-delivered{background:rgba(61,122,82,0.15);color:#3D7A52;}
-.order-card-body{padding:1rem 1.1rem;}
-.order-meta{display:flex;gap:1.2rem;margin-bottom:0.8rem;font-size:0.7rem;color:var(--gray);}
+.order-card-body{padding:0.9rem 1.1rem;}
+.order-meta{display:flex;gap:1.1rem;margin-bottom:0.7rem;font-size:0.68rem;color:var(--gray);}
 .order-meta strong{color:var(--charcoal);font-weight:700;}
 .order-items-list{list-style:none;}
-.order-items-list li{display:flex;justify-content:space-between;padding:0.28rem 0;border-bottom:1px solid var(--cream);font-size:0.78rem;}
+.order-items-list li{display:flex;justify-content:space-between;padding:0.26rem 0;border-bottom:1px solid var(--cream);font-size:0.76rem;}
 .order-items-list li:last-child{border:none;}
-.oi-qty{color:var(--teal);font-weight:700;margin-right:0.3rem;}
-.order-total-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:0.8rem;padding-top:0.8rem;border-top:1px solid var(--divider);}
-.otr-label{font-size:0.58rem;letter-spacing:0.15rem;text-transform:uppercase;color:var(--gray);}
-.otr-amount{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--teal-dark);}
-.order-note-block{margin-top:0.5rem;padding:0.45rem 0.8rem;background:var(--cream);border-left:2px solid var(--teal);font-size:0.7rem;color:var(--gray);font-style:italic;}
-.no-orders{text-align:center;padding:4rem 2rem;color:var(--gray);font-weight:300;}
+.oi-qty{color:var(--teal);font-weight:700;margin-right:0.28rem;}
+.order-total-row{display:flex;justify-content:space-between;align-items:baseline;margin-top:0.7rem;padding-top:0.7rem;border-top:1px solid var(--divider);}
+.otr-label{font-size:0.56rem;letter-spacing:0.14rem;text-transform:uppercase;color:var(--gray);}
+.otr-amount{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--teal-dark);}
+.order-note-block{margin-top:0.45rem;padding:0.42rem 0.75rem;background:var(--cream);border-left:2px solid var(--teal);font-size:0.68rem;color:var(--gray);font-style:italic;}
+.no-orders{text-align:center;padding:3rem 2rem;color:var(--gray);font-weight:300;line-height:1.7;}
 
-/* ══════════════════════════
-   TAB BAR
-══════════════════════════ */
+/* ══ TAB BAR ══ */
 .tab-bar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--divider);display:flex;z-index:50;}
-.tab-btn{flex:1;background:none;border:none;border-top:2px solid transparent;padding:0.65rem 0.5rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0.18rem;color:var(--gray);transition:all 0.2s;}
-.tab-icon{font-size:1.1rem;}
-.tab-label{font-size:0.5rem;letter-spacing:0.14rem;text-transform:uppercase;font-weight:700;}
+.tab-btn{flex:1;background:none;border:none;border-top:2px solid transparent;padding:0.62rem 0.5rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0.16rem;color:var(--gray);transition:all 0.2s;}
+.tab-icon{font-size:1.05rem;}
+.tab-label{font-size:0.49rem;letter-spacing:0.13rem;text-transform:uppercase;font-weight:700;}
 .tab-btn.active{color:var(--teal-dark);border-top-color:var(--teal);}
 
-/* ══════════════════════════
-   CART SIDEBAR
-══════════════════════════ */
+/* ══ CART ══ */
 .cart-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(28,34,38,0.45);}
 .cart-overlay.open{display:block;}
 .cart-sidebar{position:fixed;top:0;right:-440px;bottom:0;width:min(440px,100vw);background:var(--off-white);z-index:201;display:flex;flex-direction:column;transition:right 0.35s cubic-bezier(0.4,0,0.2,1);box-shadow:-4px 0 40px rgba(0,0,0,0.12);}
 .cart-sidebar.open{right:0;}
-.cart-head{background:var(--charcoal);padding:1.1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;}
-.cart-head-brand{display:flex;align-items:center;gap:0.6rem;}
-.cart-head-orn{width:22px;filter:brightness(0) saturate(100%) invert(60%) sepia(40%) saturate(500%) hue-rotate(130deg) brightness(110%);}
-.cart-head h2{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:400;color:var(--white);}
-.cart-close{background:none;border:none;color:var(--gray);font-size:1.2rem;cursor:pointer;line-height:1;}
+.cart-head{background:var(--charcoal);padding:1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;}
+.cart-head-brand{display:flex;align-items:center;gap:0.55rem;}
+.cart-head-orn{width:20px;filter:brightness(0) saturate(100%) invert(60%) sepia(40%) saturate(500%) hue-rotate(130deg) brightness(110%);}
+.cart-head h2{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:400;color:var(--white);}
+.cart-close{background:none;border:none;color:var(--gray);font-size:1.1rem;cursor:pointer;line-height:1;}
 .cart-close:hover{color:var(--white);}
-.cart-loc-info{padding:0.65rem 1.5rem;background:var(--teal-pale);border-bottom:1px solid var(--teal-border);font-size:0.7rem;color:var(--mid);display:flex;gap:0.4rem;}
+.cart-loc-info{padding:0.6rem 1.4rem;background:var(--teal-pale);border-bottom:1px solid var(--teal-border);font-size:0.68rem;color:var(--mid);display:flex;gap:0.4rem;}
 .cart-loc-info strong{color:var(--teal-dark);}
-.cart-items-list{flex:1;overflow-y:auto;padding:1rem 1.5rem;display:flex;flex-direction:column;gap:0.9rem;}
-.cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.8rem;height:100%;color:var(--gray);font-weight:300;text-align:center;}
-.cart-empty-icon{font-size:2.5rem;opacity:0.25;}
-.cart-item{background:var(--white);border:1px solid var(--divider);padding:0.85rem 1rem;display:flex;gap:0.8rem;align-items:center;}
-.ci-emoji{font-size:1.5rem;flex-shrink:0;}
+.cart-items-list{flex:1;overflow-y:auto;padding:0.9rem 1.4rem;display:flex;flex-direction:column;gap:0.85rem;}
+.cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.7rem;height:100%;color:var(--gray);font-weight:300;text-align:center;}
+.cart-empty-icon{font-size:2.2rem;opacity:0.22;}
+.cart-item{background:var(--white);border:1px solid var(--divider);padding:0.8rem 0.9rem;display:flex;gap:0.75rem;align-items:center;}
+.ci-emoji{font-size:1.4rem;flex-shrink:0;}
 .ci-info{flex:1;min-width:0;}
-.ci-name{font-family:'Playfair Display',serif;font-size:0.88rem;color:var(--charcoal);}
-.ci-price{font-size:0.72rem;color:var(--teal-dark);font-weight:700;}
-.ci-note{width:100%;background:var(--cream);border:1px solid var(--divider);padding:0.32rem 0.5rem;font-family:'Lato',sans-serif;font-size:0.7rem;color:var(--charcoal);resize:none;outline:none;margin-top:0.35rem;transition:border-color 0.2s;}
+.ci-name{font-family:'Playfair Display',serif;font-size:0.85rem;color:var(--charcoal);}
+.ci-price{font-size:0.7rem;color:var(--teal-dark);font-weight:700;}
+.ci-note{width:100%;background:var(--cream);border:1px solid var(--divider);padding:0.3rem 0.48rem;font-family:'Lato',sans-serif;font-size:0.68rem;color:var(--charcoal);resize:none;outline:none;margin-top:0.32rem;transition:border-color 0.2s;}
 .ci-note:focus{border-color:var(--teal);}
-.qty-ctrl{display:flex;align-items:center;gap:0.4rem;flex-shrink:0;}
-.qty-btn{background:var(--cream);border:1px solid var(--divider);color:var(--charcoal);width:24px;height:24px;border-radius:50%;font-size:0.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;}
+.qty-ctrl{display:flex;align-items:center;gap:0.38rem;flex-shrink:0;}
+.qty-btn{background:var(--cream);border:1px solid var(--divider);color:var(--charcoal);width:22px;height:22px;border-radius:50%;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s;}
 .qty-btn:hover{background:var(--teal-pale);border-color:var(--teal);}
-.qty-val{font-size:0.85rem;font-weight:700;min-width:1.2ch;text-align:center;}
-.cart-foot{padding:1.1rem 1.5rem;border-top:1px solid var(--divider);background:var(--white);}
-.cart-total-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1rem;}
-.ct-label{font-size:0.58rem;letter-spacing:0.18rem;text-transform:uppercase;color:var(--gray);}
-.ct-amount{font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--teal-dark);}
-.special-req-group{margin-bottom:1rem;}
-.special-req-group label{display:block;font-size:0.58rem;letter-spacing:0.16rem;text-transform:uppercase;color:var(--gray);margin-bottom:0.4rem;font-weight:700;}
-.special-req-group textarea{width:100%;background:var(--cream);border:1px solid var(--divider);padding:0.55rem 0.75rem;font-family:'Lato',sans-serif;font-size:0.78rem;color:var(--charcoal);resize:none;height:50px;outline:none;transition:border-color 0.2s;}
+.qty-val{font-size:0.82rem;font-weight:700;min-width:1.1ch;text-align:center;}
+.cart-foot{padding:1rem 1.4rem;border-top:1px solid var(--divider);background:var(--white);}
+.cart-total-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.9rem;}
+.ct-label{font-size:0.56rem;letter-spacing:0.16rem;text-transform:uppercase;color:var(--gray);}
+.ct-amount{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--teal-dark);}
+.special-req-group{margin-bottom:0.9rem;}
+.special-req-group label{display:block;font-size:0.56rem;letter-spacing:0.14rem;text-transform:uppercase;color:var(--gray);margin-bottom:0.35rem;font-weight:700;}
+.special-req-group textarea{width:100%;background:var(--cream);border:1px solid var(--divider);padding:0.52rem 0.7rem;font-family:'Lato',sans-serif;font-size:0.76rem;color:var(--charcoal);resize:none;height:48px;outline:none;transition:border-color 0.2s;}
 .special-req-group textarea:focus{border-color:var(--teal);}
-.btn-order{width:100%;background:var(--teal);color:var(--white);border:none;padding:0.92rem;font-family:'Lato',sans-serif;font-size:0.62rem;font-weight:700;letter-spacing:0.28rem;text-transform:uppercase;cursor:pointer;transition:background 0.2s;}
+.btn-order{width:100%;background:var(--teal);color:var(--white);border:none;padding:0.9rem;font-family:'Lato',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.26rem;text-transform:uppercase;cursor:pointer;transition:background 0.2s;}
 .btn-order:hover{background:var(--teal-dark);}
 .btn-order:disabled{background:var(--divider);color:var(--gray);cursor:not-allowed;}
 
-/* Toast */
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--charcoal);color:var(--white);padding:0.75rem 1.8rem;font-size:0.76rem;letter-spacing:0.04em;border-left:3px solid var(--teal);z-index:300;opacity:0;transition:opacity 0.3s,transform 0.3s;white-space:nowrap;}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(14px);background:var(--charcoal);color:var(--white);padding:0.72rem 1.7rem;font-size:0.74rem;letter-spacing:0.04em;border-left:3px solid var(--teal);z-index:300;opacity:0;transition:opacity 0.3s,transform 0.3s;white-space:nowrap;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
-@media(max-width:480px){.checkin-card{padding:1.8rem 1.4rem;}.menu-grid{grid-template-columns:1fr;}.app-header{padding:0 1rem;}}
+@media(max-width:480px){.lang-grid{grid-template-columns:repeat(3,1fr);}.checkin-card,.ret-card{padding:1.7rem 1.3rem;}.menu-grid{grid-template-columns:1fr;}.app-header{padding:0 1rem;}}
 </style>
 </head>
 <body>
 
-<!-- SPLASH -->
-<div id="splash">
-  <div class="splash-brand">
-    <img class="splash-ornament"
-         src="https://www.villafontanaaglianoterme.it/wp-content/themes/villafontana2020/dist/images/logo-bianco.svg"
-         onerror="this.style.display='none'" alt="">
-    <div class="splash-logo-rule">
-      <span class="splash-wordmark">Villafontana</span>
-    </div>
-    <div class="splash-tagline">Relais · Suites · Restaurant &amp; Spa · Agliano Terme</div>
-    <div class="splash-stars">★ ★ ★ ★</div>
-    <div class="splash-service-badge">Extra Service</div>
+<!-- LANGUAGE SELECTOR -->
+<div id="lang-screen">
+  <div class="lang-brand">
+    <img class="lang-ornament" src="https://www.villafontanaaglianoterme.it/wp-content/themes/villafontana2020/dist/images/logo-bianco.svg" onerror="this.style.display='none'" alt="">
+    <div class="lang-wordmark">Villafontana</div>
+    <div class="lang-sub">Relais · Suites · Restaurant &amp; Spa</div>
   </div>
+  <div class="lang-title">
+    <h2 id="lang-welcome-text">Seleziona la tua lingua</h2>
+    <p>Select your language · Choisissez votre langue</p>
+  </div>
+  <div class="lang-grid">
+    <button class="lang-btn" onclick="selectLang('it')"><span class="lang-flag">🇮🇹</span><span class="lang-name">Italiano</span></button>
+    <button class="lang-btn" onclick="selectLang('en')"><span class="lang-flag">🇬🇧</span><span class="lang-name">English</span></button>
+    <button class="lang-btn" onclick="selectLang('fr')"><span class="lang-flag">🇫🇷</span><span class="lang-name">Français</span></button>
+    <button class="lang-btn" onclick="selectLang('de')"><span class="lang-flag">🇩🇪</span><span class="lang-name">Deutsch</span></button>
+    <button class="lang-btn" onclick="selectLang('es')"><span class="lang-flag">🇪🇸</span><span class="lang-name">Español</span></button>
+    <button class="lang-btn" onclick="selectLang('nl')"><span class="lang-flag">🇳🇱</span><span class="lang-name">Nederlands</span></button>
+    <button class="lang-btn" onclick="selectLang('be')"><span class="lang-flag">🇧🇪</span><span class="lang-name">Vlaams</span></button>
+    <button class="lang-btn" onclick="selectLang('da')"><span class="lang-flag">🇩🇰</span><span class="lang-name">Dansk</span></button>
+    <button class="lang-btn" onclick="selectLang('ru')"><span class="lang-flag">🇷🇺</span><span class="lang-name">Русский</span></button>
+  </div>
+</div>
 
-  <div class="checkin-card">
-    <h2>Benvenuto · Welcome</h2>
-    <div class="field-group">
-      <label>Nome · Name</label>
-      <input type="text" id="input-name" placeholder="es. Mario Rossi" autocomplete="off">
-    </div>
-    <div class="field-group">
-      <label>Camera · Room</label>
-      <select id="input-room">
-        <option value="">— Seleziona —</option>
-        <option>Suite Piemont</option><option>Suite Alba</option><option>Suite Barolo</option>
-        <option>Deluxe Langhe</option><option>Deluxe Monferrato</option><option>Classica Nizza</option>
-      </select>
-    </div>
-    <div class="field-group">
-      <label>Dove sei · Location</label>
-      <select id="input-location">
-        <option value="">— Seleziona —</option>
+<!-- RETURNING GUEST -->
+<div id="returning-screen">
+  <div class="ret-card">
+    <img class="ret-ornament" src="https://www.villafontanaaglianoterme.it/wp-content/themes/villafontana2020/dist/images/logo-bianco.svg" onerror="this.style.display='none'" alt="">
+    <div class="ret-welcome" id="ret-welcome-lbl">Bentornato</div>
+    <div class="ret-name" id="ret-guest-name">—</div>
+    <div class="ret-room" id="ret-guest-room">—</div>
+    <div class="field-group-ret">
+      <label id="ret-loc-lbl">Dove sei</label>
+      <select id="ret-location">
         <option>In camera</option><option>Piscina</option><option>Terrazza panoramica</option>
         <option>Spa &amp; Wellness</option><option>Giardino</option>
         <option>Sala colazioni</option><option>Lounge bar</option>
       </select>
     </div>
-    <button class="btn-checkin" onclick="doCheckIn()">Accedi al Menu</button>
+    <button class="btn-continue" id="btn-continue" onclick="continueAsReturning()">Continua</button>
+    <br>
+    <button class="btn-not-me" id="btn-not-me" onclick="resetAndRegister()">Non sei tu?</button>
   </div>
-  <div class="splash-footer">Pranzo 12:30–14:00 · Cena 19:30–21:00 · Chiuso mer. e gio.</div>
+</div>
+
+<!-- SPLASH / CHECK-IN -->
+<div id="splash">
+  <div class="splash-brand">
+    <img class="splash-ornament" src="https://www.villafontanaaglianoterme.it/wp-content/themes/villafontana2020/dist/images/logo-bianco.svg" onerror="this.style.display='none'" alt="">
+    <div class="splash-wordmark">Villafontana</div>
+    <div class="splash-tagline">Relais · Suites · Restaurant &amp; Spa · Agliano Terme</div>
+    <div class="splash-stars">★ ★ ★ ★</div>
+    <div class="splash-badge" id="splash-badge-txt">Extra Service</div>
+  </div>
+  <div class="checkin-card">
+    <h2 id="checkin-title">Benvenuto</h2>
+    <div class="field-group">
+      <label id="lbl-name">Il tuo nome</label>
+      <input type="text" id="input-name" autocomplete="off">
+    </div>
+    <div class="field-group">
+      <label id="lbl-room">Camera</label>
+      <select id="input-room">
+        <option value="" id="opt-room-placeholder">— Seleziona la camera —</option>
+        <option>Camera 1</option><option>Camera 2</option><option>Camera 3</option>
+        <option>Camera 4</option><option>Camera 5</option><option>Camera 6</option>
+        <option>Camera 7</option><option>Camera 8</option><option>Camera 9</option>
+        <option>Camera 10</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label id="lbl-location">Dove sei</label>
+      <select id="input-location">
+        <option value="" id="opt-loc-placeholder">— Seleziona posizione —</option>
+        <option>In camera</option><option>Piscina</option><option>Terrazza panoramica</option>
+        <option>Spa &amp; Wellness</option><option>Giardino</option>
+        <option>Sala colazioni</option><option>Lounge bar</option>
+      </select>
+    </div>
+    <button class="btn-checkin" id="btn-checkin" onclick="doCheckIn()">Accedi al Menu</button>
+  </div>
+  <div class="splash-footer" id="splash-footer-txt">Pranzo 12:30–14:00 · Cena 19:30–21:00 · Chiuso mer. e gio.</div>
 </div>
 
 <!-- APP -->
 <div id="app">
   <header class="app-header">
     <div class="header-brand">
-      <img class="header-ornament"
-           src="https://www.villafontanaaglianoterme.it/wp-content/themes/villafontana2020/dist/images/logo-bianco.svg"
-           onerror="this.style.display='none'" alt="">
+      <img class="header-ornament" src="https://www.villafontanaaglianoterme.it/wp-content/themes/villafontana2020/dist/images/logo-bianco.svg" onerror="this.style.display='none'" alt="">
       <div class="header-text">
         <span class="header-wordmark">Villafontana</span>
-        <span class="header-sub">Extra Service</span>
+        <span class="header-sub" id="header-sub-txt">Extra Service</span>
       </div>
     </div>
     <div class="header-right">
@@ -378,36 +436,32 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
       </button>
     </div>
   </header>
-
   <div class="location-bar">
-    <span class="loc-label">Posizione ·</span>
+    <span class="loc-label" id="loc-label-txt">Posizione ·</span>
     <select class="loc-select" id="disp-location" onchange="updateLocation(this.value)">
       <option>In camera</option><option>Piscina</option><option>Terrazza panoramica</option>
       <option>Spa &amp; Wellness</option><option>Giardino</option>
       <option>Sala colazioni</option><option>Lounge bar</option>
     </select>
   </div>
-
   <nav class="cat-nav" id="cat-nav"></nav>
-
   <main>
     <div class="menu-wrap" id="menu-wrap"></div>
     <div class="orders-wrap" id="orders-wrap">
       <div class="section-head">
-        <span class="section-eyebrow">Extra Service</span>
-        <h2 class="section-title">I miei ordini</h2>
+        <span class="section-eyebrow" id="orders-eyebrow-txt">Extra Service</span>
+        <h2 class="section-title" id="orders-title-txt">I miei ordini</h2>
         <div class="section-rule"></div>
       </div>
       <div id="orders-list"></div>
     </div>
   </main>
-
   <nav class="tab-bar">
     <button class="tab-btn active" onclick="switchTab('menu')" id="tab-menu">
-      <span class="tab-icon">🍽</span><span class="tab-label">Menu</span>
+      <span class="tab-icon">🍽</span><span class="tab-label" id="tab-menu-lbl">Menu</span>
     </button>
     <button class="tab-btn" onclick="switchTab('orders')" id="tab-orders">
-      <span class="tab-icon">📋</span><span class="tab-label">I miei ordini</span>
+      <span class="tab-icon">📋</span><span class="tab-label" id="tab-orders-lbl">Ordini</span>
     </button>
   </nav>
 </div>
@@ -416,162 +470,378 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
 <div class="cart-sidebar" id="cart-sidebar">
   <div class="cart-head">
     <div class="cart-head-brand">
-      <img class="cart-head-orn"
-           src="https://www.villafontanaaglianoterme.it/wp-content/themes/villafontana2020/dist/images/logo-bianco.svg"
-           onerror="this.style.display='none'" alt="">
-      <h2>Il tuo ordine</h2>
+      <img class="cart-head-orn" src="https://www.villafontanaaglianoterme.it/wp-content/themes/villafontana2020/dist/images/logo-bianco.svg" onerror="this.style.display='none'" alt="">
+      <h2 id="cart-title-txt">Il tuo ordine</h2>
     </div>
     <button class="cart-close" onclick="toggleCart()">✕</button>
   </div>
-  <div class="cart-loc-info">📍 <strong id="cart-loc-disp">—</strong> · <span id="cart-room-disp">—</span></div>
+  <div class="cart-loc-info" id="cart-loc-info-txt">📍 <strong id="cart-loc-disp">—</strong> · <span id="cart-room-disp">—</span></div>
   <div class="cart-items-list" id="cart-items-list"></div>
   <div class="cart-foot">
     <div class="cart-total-row">
-      <span class="ct-label">Totale</span>
+      <span class="ct-label" id="cart-total-lbl">Totale</span>
       <span class="ct-amount" id="cart-total">€ 0,00</span>
     </div>
     <div class="special-req-group">
-      <label>Richieste speciali</label>
+      <label id="special-req-lbl">Richieste speciali</label>
       <textarea id="special-req" placeholder="Allergie, preferenze, note…"></textarea>
     </div>
-    <button class="btn-order" id="btn-order" onclick="placeOrder()" disabled>Invia ordine</button>
+    <button class="btn-order" id="btn-order" onclick="placeOrder()" disabled id="btn-order-txt">Invia ordine</button>
   </div>
 </div>
-
 <div class="toast" id="toast"></div>
 
 <script>
-const DEGUSTAZIONE={
-  nome:'Menù Degustazione Contemporaneo',prezzo:75.00,
-  note:'Per l\u2019intero tavolo. Bevande e vini esclusi.',
-  portate:[
-    'Carpaccio di ricciola con gelatina di ceviche, cocco e coriandolo',
-    'Carciofo, fonduta di Raschera, acciughe e grano saraceno',
-    'Gnocchi ripieni di ragù d\u2019anatra, salsa al foie gras, Marsala e tartufo nero',
-    'Guancia di maiale alle tre creme: prezzemolo, mais e il suo fondo',
-    'Goloso al cioccolato e amaretti con salsa al caramello salato'
-  ]
+/* ══════════════════════════════════════════
+   TRANSLATIONS
+══════════════════════════════════════════ */
+const T = {
+  it:{flag:'🇮🇹',name:'Italiano',welcome:'Benvenuto',welcome_sub:'Seleziona la tua lingua',your_name:'Il tuo nome',your_room:'Camera',select_room:'— Seleziona la camera —',location:'Dove sei',select_location:'— Seleziona posizione —',enter:'Accedi al Menu',hours:'Pranzo 12:30–14:00 · Cena 19:30–21:00 · Chiuso mer. e gio.',extra_service:'Extra Service',my_orders:'I miei ordini',menu:'Menu',orders:'Ordini',your_order:'Il tuo ordine',delivery_to:'Consegna a',special_requests:'Richieste speciali',allergies_placeholder:'Allergie, preferenze, note…',send_order:'Invia ordine',total:'Totale',add_note:'Note (es. senza glutine)…',cart_empty:'Nessun articolo nel carrello.',order_sent:'✦ Ordine inviato con successo!',added:'aggiunto',ask_sommelier:'Chiedere al sommelier',tag_chef:'⭐ Chef',tag_new:'Novità',tag_veg:'Veg',season:'La Fontana del Re · Primavera 2026',tasting_note:'Per l\u2019intero tavolo. Bevande e vini esclusi.',add_to_order:'Aggiungi al tuo ordine',full_experience:'Esperienza completa',no_orders:'Nessun ordine ancora.\nSfoglia il menu e ordina!',status_received:'Ricevuto',status_preparing:'In preparazione',status_delivering:'In consegna',status_delivered:'Consegnato',order_total:'Totale ordine',preparing_msg:'👨\u200d🍳 Il tuo ordine è in preparazione!',delivering_msg:'🛎 Il tuo ordine è in arrivo!',delivered_msg:'✅ Ordine consegnato. Buon appetito!',returning_welcome:'Bentornato',not_you:'Non sei tu?',continue:'Continua',pos_label:'Posizione ·'},
+  en:{flag:'🇬🇧',name:'English',welcome:'Welcome',welcome_sub:'Select your language',your_name:'Your name',your_room:'Room',select_room:'— Select your room —',location:'Where are you',select_location:'— Select location —',enter:'Access the Menu',hours:'Lunch 12:30–14:00 · Dinner 19:30–21:00 · Closed Wed. & Thu.',extra_service:'Extra Service',my_orders:'My orders',menu:'Menu',orders:'Orders',your_order:'Your order',delivery_to:'Deliver to',special_requests:'Special requests',allergies_placeholder:'Allergies, preferences, notes…',send_order:'Place order',total:'Total',add_note:'Notes (e.g. gluten free)…',cart_empty:'No items in your cart.',order_sent:'✦ Order placed successfully!',added:'added',ask_sommelier:'Ask the sommelier',tag_chef:'⭐ Chef',tag_new:'New',tag_veg:'Veg',season:'La Fontana del Re · Spring 2026',tasting_note:'For the whole table. Drinks and wines excluded.',add_to_order:'Add to your order',full_experience:'Full experience',no_orders:'No orders yet.\nBrowse the menu and order!',status_received:'Received',status_preparing:'Preparing',status_delivering:'On the way',status_delivered:'Delivered',order_total:'Order total',preparing_msg:'👨\u200d🍳 Your order is being prepared!',delivering_msg:'🛎 Your order is on its way!',delivered_msg:'✅ Order delivered. Enjoy your meal!',returning_welcome:'Welcome back',not_you:'Not you?',continue:'Continue',pos_label:'Location ·'},
+  fr:{flag:'🇫🇷',name:'Français',welcome:'Bienvenue',welcome_sub:'Sélectionnez votre langue',your_name:'Votre nom',your_room:'Chambre',select_room:'— Sélectionnez votre chambre —',location:'Où êtes-vous',select_location:'— Sélectionnez le lieu —',enter:'Accéder au Menu',hours:'Déjeuner 12:30–14:00 · Dîner 19:30–21:00 · Fermé mer. et jeu.',extra_service:'Extra Service',my_orders:'Mes commandes',menu:'Menu',orders:'Commandes',your_order:'Votre commande',delivery_to:'Livraison à',special_requests:'Demandes spéciales',allergies_placeholder:'Allergies, préférences, notes…',send_order:'Passer la commande',total:'Total',add_note:'Notes (ex. sans gluten)…',cart_empty:'Votre panier est vide.',order_sent:'✦ Commande envoyée!',added:'ajouté',ask_sommelier:'Demander au sommelier',tag_chef:'⭐ Chef',tag_new:'Nouveau',tag_veg:'Vég',season:'La Fontana del Re · Printemps 2026',tasting_note:'Pour toute la table. Boissons et vins exclus.',add_to_order:'Ajouter à votre commande',full_experience:'Expérience complète',no_orders:'Aucune commande.\nParcourez le menu!',status_received:'Reçu',status_preparing:'En préparation',status_delivering:'En livraison',status_delivered:'Livré',order_total:'Total commande',preparing_msg:'👨\u200d🍳 Votre commande est en préparation!',delivering_msg:'🛎 Votre commande arrive!',delivered_msg:'✅ Livré. Bon appétit!',returning_welcome:'Bon retour',not_you:'Ce n\'est pas vous?',continue:'Continuer',pos_label:'Position ·'},
+  de:{flag:'🇩🇪',name:'Deutsch',welcome:'Willkommen',welcome_sub:'Wählen Sie Ihre Sprache',your_name:'Ihr Name',your_room:'Zimmer',select_room:'— Zimmer auswählen —',location:'Wo sind Sie',select_location:'— Ort auswählen —',enter:'Zum Menü',hours:'Mittagessen 12:30–14:00 · Abendessen 19:30–21:00 · Geschlossen Mi. & Do.',extra_service:'Extra Service',my_orders:'Meine Bestellungen',menu:'Menü',orders:'Bestellungen',your_order:'Ihre Bestellung',delivery_to:'Lieferung an',special_requests:'Besondere Wünsche',allergies_placeholder:'Allergien, Präferenzen, Notizen…',send_order:'Bestellung aufgeben',total:'Gesamt',add_note:'Hinweise (z.B. glutenfrei)…',cart_empty:'Ihr Warenkorb ist leer.',order_sent:'✦ Bestellung aufgegeben!',added:'hinzugefügt',ask_sommelier:'Sommelier fragen',tag_chef:'⭐ Chef',tag_new:'Neu',tag_veg:'Veg',season:'La Fontana del Re · Frühling 2026',tasting_note:'Für den gesamten Tisch. Getränke und Weine ausgeschlossen.',add_to_order:'Zur Bestellung hinzufügen',full_experience:'Vollständiges Erlebnis',no_orders:'Noch keine Bestellungen.\nDurchsuchen Sie das Menü!',status_received:'Erhalten',status_preparing:'In Zubereitung',status_delivering:'Unterwegs',status_delivered:'Geliefert',order_total:'Bestellsumme',preparing_msg:'👨\u200d🍳 Ihre Bestellung wird zubereitet!',delivering_msg:'🛎 Ihre Bestellung ist unterwegs!',delivered_msg:'✅ Geliefert. Guten Appetit!',returning_welcome:'Willkommen zurück',not_you:'Nicht Sie?',continue:'Weiter',pos_label:'Standort ·'},
+  es:{flag:'🇪🇸',name:'Español',welcome:'Bienvenido',welcome_sub:'Seleccione su idioma',your_name:'Su nombre',your_room:'Habitación',select_room:'— Seleccione su habitación —',location:'Dónde está',select_location:'— Seleccione ubicación —',enter:'Acceder al Menú',hours:'Almuerzo 12:30–14:00 · Cena 19:30–21:00 · Cerrado mié. y jue.',extra_service:'Extra Service',my_orders:'Mis pedidos',menu:'Menú',orders:'Pedidos',your_order:'Su pedido',delivery_to:'Entrega en',special_requests:'Solicitudes especiales',allergies_placeholder:'Alergias, preferencias, notas…',send_order:'Realizar pedido',total:'Total',add_note:'Notas (ej. sin gluten)…',cart_empty:'Su carrito está vacío.',order_sent:'✦ ¡Pedido enviado!',added:'añadido',ask_sommelier:'Preguntar al sommelier',tag_chef:'⭐ Chef',tag_new:'Nuevo',tag_veg:'Veg',season:'La Fontana del Re · Primavera 2026',tasting_note:'Para toda la mesa. Bebidas y vinos excluidos.',add_to_order:'Añadir al pedido',full_experience:'Experiencia completa',no_orders:'Aún no hay pedidos.\n¡Explore el menú!',status_received:'Recibido',status_preparing:'En preparación',status_delivering:'En camino',status_delivered:'Entregado',order_total:'Total del pedido',preparing_msg:'👨\u200d🍳 ¡Su pedido está en preparación!',delivering_msg:'🛎 ¡Su pedido está en camino!',delivered_msg:'✅ Entregado. ¡Buen provecho!',returning_welcome:'Bienvenido de nuevo',not_you:'¿No es usted?',continue:'Continuar',pos_label:'Ubicación ·'},
+  nl:{flag:'🇳🇱',name:'Nederlands',welcome:'Welkom',welcome_sub:'Selecteer uw taal',your_name:'Uw naam',your_room:'Kamer',select_room:'— Selecteer uw kamer —',location:'Waar bent u',select_location:'— Selecteer locatie —',enter:'Naar het Menu',hours:'Lunch 12:30–14:00 · Diner 19:30–21:00 · Gesloten wo. en do.',extra_service:'Extra Service',my_orders:'Mijn bestellingen',menu:'Menu',orders:'Bestellingen',your_order:'Uw bestelling',delivery_to:'Bezorging aan',special_requests:'Speciale verzoeken',allergies_placeholder:'Allergieën, voorkeuren, notities…',send_order:'Bestelling plaatsen',total:'Totaal',add_note:'Notities (bijv. glutenvrij)…',cart_empty:'Uw winkelwagen is leeg.',order_sent:'✦ Bestelling geplaatst!',added:'toegevoegd',ask_sommelier:'Vraag de sommelier',tag_chef:'⭐ Chef',tag_new:'Nieuw',tag_veg:'Veg',season:'La Fontana del Re · Lente 2026',tasting_note:'Voor het hele tafel. Dranken en wijnen niet inbegrepen.',add_to_order:'Toevoegen aan bestelling',full_experience:'Volledige ervaring',no_orders:'Nog geen bestellingen.\nBekijk het menu!',status_received:'Ontvangen',status_preparing:'In bereiding',status_delivering:'Onderweg',status_delivered:'Bezorgd',order_total:'Besteltotaal',preparing_msg:'👨\u200d🍳 Uw bestelling wordt bereid!',delivering_msg:'🛎 Uw bestelling is onderweg!',delivered_msg:'✅ Bezorgd. Eet smakelijk!',returning_welcome:'Welkom terug',not_you:'Bent u het niet?',continue:'Doorgaan',pos_label:'Locatie ·'},
+  be:{flag:'🇧🇪',name:'Vlaams',welcome:'Welkom',welcome_sub:'Selecteer uw taal',your_name:'Uw naam',your_room:'Kamer',select_room:'— Selecteer uw kamer —',location:'Waar bent u',select_location:'— Selecteer locatie —',enter:'Naar het Menu',hours:'Lunch 12:30–14:00 · Diner 19:30–21:00 · Gesloten wo. en do.',extra_service:'Extra Service',my_orders:'Mijn bestellingen',menu:'Menu',orders:'Bestellingen',your_order:'Uw bestelling',delivery_to:'Bezorging aan',special_requests:'Speciale verzoeken',allergies_placeholder:'Allergieën, voorkeuren, notities…',send_order:'Bestelling plaatsen',total:'Totaal',add_note:'Notities (bijv. glutenvrij)…',cart_empty:'Uw winkelwagen is leeg.',order_sent:'✦ Bestelling geplaatst!',added:'toegevoegd',ask_sommelier:'Vraag de sommelier',tag_chef:'⭐ Chef',tag_new:'Nieuw',tag_veg:'Veg',season:'La Fontana del Re · Lente 2026',tasting_note:'Voor het hele tafel. Dranken en wijnen niet inbegrepen.',add_to_order:'Toevoegen aan bestelling',full_experience:'Volledige ervaring',no_orders:'Nog geen bestellingen.\nBekijk het menu!',status_received:'Ontvangen',status_preparing:'In bereiding',status_delivering:'Onderweg',status_delivered:'Bezorgd',order_total:'Besteltotaal',preparing_msg:'👨\u200d🍳 Uw bestelling wordt bereid!',delivering_msg:'🛎 Uw bestelling is onderweg!',delivered_msg:'✅ Bezorgd. Smakelijk!',returning_welcome:'Welkom terug',not_you:'Bent u het niet?',continue:'Doorgaan',pos_label:'Locatie ·'},
+  da:{flag:'🇩🇰',name:'Dansk',welcome:'Velkommen',welcome_sub:'Vælg dit sprog',your_name:'Dit navn',your_room:'Værelse',select_room:'— Vælg dit værelse —',location:'Hvor er du',select_location:'— Vælg placering —',enter:'Gå til Menuen',hours:'Frokost 12:30–14:00 · Middag 19:30–21:00 · Lukket ons. og tor.',extra_service:'Extra Service',my_orders:'Mine bestillinger',menu:'Menu',orders:'Bestillinger',your_order:'Din bestilling',delivery_to:'Levering til',special_requests:'Særlige ønsker',allergies_placeholder:'Allergier, præferencer, noter…',send_order:'Afgiv bestilling',total:'Total',add_note:'Noter (f.eks. glutenfri)…',cart_empty:'Din kurv er tom.',order_sent:'✦ Bestilling afgivet!',added:'tilføjet',ask_sommelier:'Spørg sommelieren',tag_chef:'⭐ Chef',tag_new:'Ny',tag_veg:'Veg',season:'La Fontana del Re · Forår 2026',tasting_note:'For hele bordet. Drikkevarer og vine er ikke inkluderet.',add_to_order:'Tilføj til bestilling',full_experience:'Fuld oplevelse',no_orders:'Ingen bestillinger endnu.\nGennemse menuen!',status_received:'Modtaget',status_preparing:'Under tilberedning',status_delivering:'På vej',status_delivered:'Leveret',order_total:'Bestillingstotal',preparing_msg:'👨\u200d🍳 Din bestilling tilberedes!',delivering_msg:'🛎 Din bestilling er på vej!',delivered_msg:'✅ Leveret. Velbekomme!',returning_welcome:'Velkommen tilbage',not_you:'Ikke dig?',continue:'Fortsæt',pos_label:'Placering ·'},
+  ru:{flag:'🇷🇺',name:'Русский',welcome:'Добро пожаловать',welcome_sub:'Выберите язык',your_name:'Ваше имя',your_room:'Номер',select_room:'— Выберите номер —',location:'Где вы находитесь',select_location:'— Выберите место —',enter:'Открыть меню',hours:'Обед 12:30–14:00 · Ужин 19:30–21:00 · Закрыто ср. и чт.',extra_service:'Extra Service',my_orders:'Мои заказы',menu:'Меню',orders:'Заказы',your_order:'Ваш заказ',delivery_to:'Доставка в',special_requests:'Особые пожелания',allergies_placeholder:'Аллергии, предпочтения, заметки…',send_order:'Оформить заказ',total:'Итого',add_note:'Заметки (напр. без глютена)…',cart_empty:'Корзина пуста.',order_sent:'✦ Заказ успешно отправлен!',added:'добавлено',ask_sommelier:'Спросить сомелье',tag_chef:'⭐ Шеф',tag_new:'Новинка',tag_veg:'Вег',season:'La Fontana del Re · Весна 2026',tasting_note:'Для всего стола. Напитки и вина не включены.',add_to_order:'Добавить в заказ',full_experience:'Полный опыт',no_orders:'Заказов пока нет.\nПосмотрите меню!',status_received:'Получен',status_preparing:'Готовится',status_delivering:'В пути',status_delivered:'Доставлен',order_total:'Итого заказ',preparing_msg:'👨\u200d🍳 Ваш заказ готовится!',delivering_msg:'🛎 Ваш заказ уже в пути!',delivered_msg:'✅ Доставлен. Приятного аппетита!',returning_welcome:'С возвращением',not_you:'Не вы?',continue:'Продолжить',pos_label:'Место ·'}
 };
+
+/* ══ MENU DATA ══ */
+const LOC_TRANSLATIONS = {"it": ["In camera", "Piscina", "Terrazza panoramica", "Spa & Wellness", "Giardino", "Sala colazioni", "Lounge bar"], "en": ["In the room", "Pool", "Panoramic terrace", "Spa & Wellness", "Garden", "Breakfast room", "Lounge bar"], "fr": ["Dans la chambre", "Piscine", "Terrasse panoramique", "Spa & Wellness", "Jardin", "Salle du petit-déjeuner", "Lounge bar"], "de": ["Im Zimmer", "Pool", "Panoramaterrasse", "Spa & Wellness", "Garten", "Frühstücksraum", "Lounge bar"], "es": ["En la habitación", "Piscina", "Terraza panorámica", "Spa & Wellness", "Jardín", "Sala de desayuno", "Lounge bar"], "nl": ["Op de kamer", "Zwembad", "Panoramaterras", "Spa & Wellness", "Tuin", "Ontbijtzaal", "Lounge bar"], "be": ["Op de kamer", "Zwembad", "Panoramaterras", "Spa & Wellness", "Tuin", "Ontbijtzaal", "Lounge bar"], "da": ["På værelset", "Pool", "Panoramaterrasse", "Spa & Wellness", "Have", "Morgenmadssal", "Lounge bar"], "ru": ["В номере", "Бассейн", "Панорамная терраса", "Spa & Wellness", "Сад", "Завтрак", "Lounge bar"]};
+const ROOM_WORD = {"it": "Camera", "en": "Room", "fr": "Chambre", "de": "Zimmer", "es": "Habitación", "nl": "Kamer", "be": "Kamer", "da": "Værelse", "ru": "Номер"};
+
+const CAT_TRANSLATIONS = {"it": {"Analcolici": "Analcolici", "Hot Drinks": "Hot Drinks", "Cocktail": "Cocktail", "Vini": "Vini", "Snack": "Snack"}, "en": {"Analcolici": "Soft Drinks", "Hot Drinks": "Hot Drinks", "Cocktail": "Cocktails", "Vini": "Wines", "Snack": "Snacks"}, "fr": {"Analcolici": "Boissons sans alcool", "Hot Drinks": "Boissons chaudes", "Cocktail": "Cocktails", "Vini": "Vins", "Snack": "Snacks"}, "de": {"Analcolici": "Alkoholfrei", "Hot Drinks": "Heißgetränke", "Cocktail": "Cocktails", "Vini": "Weine", "Snack": "Snacks"}, "es": {"Analcolici": "Sin alcohol", "Hot Drinks": "Bebidas calientes", "Cocktail": "Cócteles", "Vini": "Vinos", "Snack": "Aperitivos"}, "nl": {"Analcolici": "Frisdranken", "Hot Drinks": "Warme dranken", "Cocktail": "Cocktails", "Vini": "Wijnen", "Snack": "Snacks"}, "be": {"Analcolici": "Frisdranken", "Hot Drinks": "Warme dranken", "Cocktail": "Cocktails", "Vini": "Wijnen", "Snack": "Snacks"}, "da": {"Analcolici": "Alkoholfri", "Hot Drinks": "Varme drikke", "Cocktail": "Cocktails", "Vini": "Vine", "Snack": "Snacks"}, "ru": {"Analcolici": "Безалкогольные", "Hot Drinks": "Горячие напитки", "Cocktail": "Коктейли", "Vini": "Вина", "Snack": "Закуски"}};
+
+const MENU_TRANSLATIONS = {"it": {"1": {"name": "Acqua minerale", "desc": "Naturale o frizzante · 750 ml"}, "2": {"name": "Freshly squeezed juice", "desc": "Arancia rossa, mela o pompelmo · spremuta fresca"}, "3": {"name": "Villa Fontana Lemonade", "desc": "Limone, menta fresca, sciroppo di lavanda, acqua frizzante"}, "4": {"name": "Espresso / Americano", "desc": "Miscela artigianale, tostatura media, estratto a 9 bar"}, "5": {"name": "Selezione di tè", "desc": "Earl Grey, Darjeeling, Green, Chamomile · selezione in foglie"}, "6": {"name": "Aperol Spritz", "desc": "Aperol, Prosecco DOC, arancia fresca, ghiaccio"}, "7": {"name": "Hugo", "desc": "Sambuco dei Colli, Prosecco, menta fresca, lime"}, "8": {"name": "Negroni", "desc": "Gin, Campari, Vermouth rosso, scorza d’arancia"}, "9": {"name": "Moscow Mule", "desc": "Vodka, ginger beer artigianale, lime fresco"}, "10": {"name": "Virgin Mojito", "desc": "Lime, menta fresca, zucchero di canna, soda · analcolico"}, "11": {"name": "Moscato d’Asti DOCG · calice", "desc": "Dolce, frizzante, aromatico · Langhe e Monferrato"}, "12": {"name": "Barbera d’Asti DOC · calice", "desc": "Produttori locali, intenso e strutturato · zona UNESCO"}, "13": {"name": "Mixed bruschette", "desc": "Pomodoro fresco, lardo d’Arnad, crema di zucchine · 3 varietà"}, "14": {"name": "Cheese & charcuterie board", "desc": "Tome di alpeggio, salumi locali, grissini di Torino, mostarde"}, "15": {"name": "Frutta di stagione & sorbetto", "desc": "Frutta fresca di stagione, sorbetto artigianale al limone"}}, "en": {"1": {"name": "Still or sparkling water", "desc": "Natural or sparkling mineral water · 750 ml"}, "2": {"name": "Freshly squeezed juice", "desc": "Blood orange, apple or grapefruit · freshly pressed"}, "3": {"name": "Villa Fontana Lemonade", "desc": "Lemon, fresh mint, lavender syrup, sparkling water"}, "4": {"name": "Espresso / Americano", "desc": "Artisan blend, medium roast, extracted at 9 bar"}, "5": {"name": "Selection of teas", "desc": "Earl Grey, Darjeeling, Green, Chamomile · loose leaf"}, "6": {"name": "Aperol Spritz", "desc": "Aperol, DOC Prosecco, fresh orange, ice"}, "7": {"name": "Hugo", "desc": "Elderflower, Prosecco, fresh mint, lime"}, "8": {"name": "Negroni", "desc": "Gin, Campari, red Vermouth, orange zest"}, "9": {"name": "Moscow Mule", "desc": "Vodka, artisan ginger beer, fresh lime"}, "10": {"name": "Virgin Mojito", "desc": "Lime, fresh mint, cane sugar, soda · alcohol free"}, "11": {"name": "Moscato d’Asti DOCG · glass", "desc": "Sweet, sparkling, aromatic · Langhe and Monferrato"}, "12": {"name": "Barbera d’Asti DOC · glass", "desc": "Local producers, intense and structured · UNESCO area"}, "13": {"name": "Mixed bruschette", "desc": "Fresh tomato, Arnad lard, courgette cream · 3 varieties"}, "14": {"name": "Cheese & charcuterie board", "desc": "Alpine cheeses, local cold cuts, Torino breadsticks, mustards"}, "15": {"name": "Seasonal fruit & sorbet", "desc": "Fresh seasonal fruit, artisan lemon sorbet"}}, "fr": {"1": {"name": "Eau minérale", "desc": "Plate ou pétillante · 750 ml"}, "2": {"name": "Jus fraîchement pressé", "desc": "Orange sanguine, pomme ou pamplemousse · pressé frais"}, "3": {"name": "Villa Fontana Lemonade", "desc": "Citron, menthe fraîche, sirop de lavande, eau pétillante"}, "4": {"name": "Espresso / Américain", "desc": "Mélange artisanal, torréfaction moyenne, extrait à 9 bars"}, "5": {"name": "Sélection de thés", "desc": "Earl Grey, Darjeeling, Vert, Camomille · feuilles entières"}, "6": {"name": "Aperol Spritz", "desc": "Aperol, Prosecco DOC, orange fraîche, glaçons"}, "7": {"name": "Hugo", "desc": "Sureau des collines, Prosecco, menthe fraîche, citron vert"}, "8": {"name": "Negroni", "desc": "Gin, Campari, Vermouth rouge, zeste d’orange"}, "9": {"name": "Moscow Mule", "desc": "Vodka, ginger beer artisanal, citron vert frais"}, "10": {"name": "Virgin Mojito", "desc": "Citron vert, menthe fraîche, sucre de canne, soda · sans alcool"}, "11": {"name": "Moscato d’Asti DOCG · verre", "desc": "Doux, pétillant, aromatique · Langhe et Monferrato"}, "12": {"name": "Barbera d’Asti DOC · verre", "desc": "Producteurs locaux, intense et structuré · zone UNESCO"}, "13": {"name": "Bruschette variées", "desc": "Tomate fraîche, lard d’Arnad, crème de courgette · 3 variétés"}, "14": {"name": "Plateau fromages & charcuteries", "desc": "Fromages alpins, charcuteries locales, grissini, moutardes"}, "15": {"name": "Fruits de saison & sorbet", "desc": "Fruits frais de saison, sorbet artisanal au citron"}}, "de": {"1": {"name": "Mineralwasser", "desc": "Still oder sprudelnd · 750 ml"}, "2": {"name": "Frisch gepresster Saft", "desc": "Blutorange, Apfel oder Grapefruit · frisch gepresst"}, "3": {"name": "Villa Fontana Lemonade", "desc": "Zitrone, frische Minze, Lavendelsirup, Sprudelwasser"}, "4": {"name": "Espresso / Americano", "desc": "Handwerkliche Mischung, mittlere Röstung, 9-Bar-Extraktion"}, "5": {"name": "Tee-Auswahl", "desc": "Earl Grey, Darjeeling, Grüner, Kamille · lose Blätter"}, "6": {"name": "Aperol Spritz", "desc": "Aperol, DOC Prosecco, frische Orange, Eis"}, "7": {"name": "Hugo", "desc": "Holunder, Prosecco, frische Minze, Limette"}, "8": {"name": "Negroni", "desc": "Gin, Campari, roter Wermut, Orangenzeste"}, "9": {"name": "Moscow Mule", "desc": "Vodka, handgemachtes Ginger Beer, frische Limette"}, "10": {"name": "Virgin Mojito", "desc": "Limette, frische Minze, Rohrzucker, Soda · alkoholfrei"}, "11": {"name": "Moscato d’Asti DOCG · Glas", "desc": "Süß, prickelnd, aromatisch · Langhe und Monferrato"}, "12": {"name": "Barbera d’Asti DOC · Glas", "desc": "Lokale Erzeuger, kräftig und strukturiert · UNESCO-Gebiet"}, "13": {"name": "Gemischte Bruschette", "desc": "Frische Tomate, Arnad-Speck, Zucchinisauce · 3 Sorten"}, "14": {"name": "Käse- & Wurstplatte", "desc": "Almkäse, lokale Wurstwaren, Turiner Grissini, Senf"}, "15": {"name": "Saisonfrüchte & Sorbet", "desc": "Frisches Saisonobst, handgemachtes Zitronensorbet"}}, "es": {"1": {"name": "Agua mineral", "desc": "Natural o con gas · 750 ml"}, "2": {"name": "Zumo recién exprimido", "desc": "Naranja sanguina, manzana o pomelo · recién exprimido"}, "3": {"name": "Villa Fontana Lemonade", "desc": "Limón, menta fresca, jarabe de lavanda, agua con gas"}, "4": {"name": "Espresso / Americano", "desc": "Mezcla artesanal, tueste medio, extracción a 9 bares"}, "5": {"name": "Selección de tés", "desc": "Earl Grey, Darjeeling, Verde, Manzanilla · hojas sueltas"}, "6": {"name": "Aperol Spritz", "desc": "Aperol, Prosecco DOC, naranja fresca, hielo"}, "7": {"name": "Hugo", "desc": "Flor de saúco, Prosecco, menta fresca, lima"}, "8": {"name": "Negroni", "desc": "Gin, Campari, Vermut rojo, cáscara de naranja"}, "9": {"name": "Moscow Mule", "desc": "Vodka, ginger beer artesanal, lima fresca"}, "10": {"name": "Virgin Mojito", "desc": "Lima, menta fresca, azúcar de caña, soda · sin alcohol"}, "11": {"name": "Moscato d’Asti DOCG · copa", "desc": "Dulce, espumoso, aromático · Langhe y Monferrato"}, "12": {"name": "Barbera d’Asti DOC · copa", "desc": "Productores locales, intenso y estructurado · zona UNESCO"}, "13": {"name": "Bruschette variadas", "desc": "Tomate fresco, tocino de Arnad, crema de calabacín · 3 variedades"}, "14": {"name": "Tabla de quesos & embutidos", "desc": "Quesos alpinos, embutidos locales, palitos de Turín, mostazas"}, "15": {"name": "Fruta de temporada & sorbete", "desc": "Fruta fresca de temporada, sorbete artesanal de limón"}}, "nl": {"1": {"name": "Mineraalwater", "desc": "Plat of bruisend · 750 ml"}, "2": {"name": "Vers geperst sap", "desc": "Bloedsinaasappel, appel of grapefruit · vers geperst"}, "3": {"name": "Villa Fontana Lemonade", "desc": "Citroen, verse munt, lavendelstroop, bruisend water"}, "4": {"name": "Espresso / Americano", "desc": "Ambachtelijke blend, middelbrand, geëxtraheerd op 9 bar"}, "5": {"name": "Theeselectie", "desc": "Earl Grey, Darjeeling, Groen, Kamille · losse blaadjes"}, "6": {"name": "Aperol Spritz", "desc": "Aperol, DOC Prosecco, verse sinaasappel, ijs"}, "7": {"name": "Hugo", "desc": "Vlierbloesem, Prosecco, verse munt, limoen"}, "8": {"name": "Negroni", "desc": "Gin, Campari, rode Vermouth, sinaasappelschil"}, "9": {"name": "Moscow Mule", "desc": "Vodka, ambachtelijk ginger beer, verse limoen"}, "10": {"name": "Virgin Mojito", "desc": "Limoen, verse munt, rietsuiker, soda · alcoholvrij"}, "11": {"name": "Moscato d’Asti DOCG · glas", "desc": "Zoet, bruisend, aromatisch · Langhe en Monferrato"}, "12": {"name": "Barbera d’Asti DOC · glas", "desc": "Lokale producenten, intens en gestructureerd · UNESCO-gebied"}, "13": {"name": "Gemengde bruschette", "desc": "Verse tomaat, Arnad spek, courgettesaus · 3 soorten"}, "14": {"name": "Kaas- & vleeswaren plateau", "desc": "Alpijnse kazen, lokale vleeswaren, Turijnse grissini, mosterd"}, "15": {"name": "Seizoensfruit & sorbet", "desc": "Vers seizoensfruit, ambachtelijk citroensorbet"}}, "be": {"1": {"name": "Mineraalwater", "desc": "Plat of bruisend · 750 ml"}, "2": {"name": "Vers geperst sap", "desc": "Bloedsinaasappel, appel of grapefruit · vers geperst"}, "3": {"name": "Villa Fontana Lemonade", "desc": "Citroen, verse munt, lavendelstroop, bruisend water"}, "4": {"name": "Espresso / Americano", "desc": "Ambachtelijke blend, middelbrand, geëxtraheerd op 9 bar"}, "5": {"name": "Theeselectie", "desc": "Earl Grey, Darjeeling, Groen, Kamille · losse blaadjes"}, "6": {"name": "Aperol Spritz", "desc": "Aperol, DOC Prosecco, verse sinaasappel, ijs"}, "7": {"name": "Hugo", "desc": "Vlierbloesem, Prosecco, verse munt, limoen"}, "8": {"name": "Negroni", "desc": "Gin, Campari, rode Vermouth, sinaasappelschil"}, "9": {"name": "Moscow Mule", "desc": "Vodka, ambachtelijk ginger beer, verse limoen"}, "10": {"name": "Virgin Mojito", "desc": "Limoen, verse munt, rietsuiker, soda · alcoholvrij"}, "11": {"name": "Moscato d’Asti DOCG · glas", "desc": "Zoet, bruisend, aromatisch · Langhe en Monferrato"}, "12": {"name": "Barbera d’Asti DOC · glas", "desc": "Lokale producenten, intens en gestructureerd · UNESCO-gebied"}, "13": {"name": "Gemengde bruschette", "desc": "Verse tomaat, Arnad spek, courgettesaus · 3 soorten"}, "14": {"name": "Kaas- & vleeswaren plateau", "desc": "Alpijnse kazen, lokale vleeswaren, Turijnse grissini, mosterd"}, "15": {"name": "Seizoensfruit & sorbet", "desc": "Vers seizoensfruit, ambachtelijk citroensorbet"}}, "da": {"1": {"name": "Mineralvand", "desc": "Stille eller brusende · 750 ml"}, "2": {"name": "Friskpresset juice", "desc": "Blodappelsin, æble eller grapefrugt · friskpresset"}, "3": {"name": "Villa Fontana Lemonade", "desc": "Citron, frisk mynte, lavendelsirup, bruservand"}, "4": {"name": "Espresso / Americano", "desc": "Håndværksblanding, mellemristning, ekstraheret ved 9 bar"}, "5": {"name": "Te-udvalg", "desc": "Earl Grey, Darjeeling, Grøn, Kamille · løse blade"}, "6": {"name": "Aperol Spritz", "desc": "Aperol, DOC Prosecco, frisk appelsin, is"}, "7": {"name": "Hugo", "desc": "Hyldeblomstsaft, Prosecco, frisk mynte, lime"}, "8": {"name": "Negroni", "desc": "Gin, Campari, rød Vermouth, appelsinskal"}, "9": {"name": "Moscow Mule", "desc": "Vodka, håndværks ginger beer, frisk lime"}, "10": {"name": "Virgin Mojito", "desc": "Lime, frisk mynte, rørsukker, sodavand · alkoholfri"}, "11": {"name": "Moscato d’Asti DOCG · glas", "desc": "Sød, mousserende, aromatisk · Langhe og Monferrato"}, "12": {"name": "Barbera d’Asti DOC · glas", "desc": "Lokale producenter, intens og struktureret · UNESCO-område"}, "13": {"name": "Blandede bruschette", "desc": "Frisk tomat, Arnad-bacon, squashcreme · 3 varianter"}, "14": {"name": "Ost- & pålægsfad", "desc": "Alpeoste, lokale pålæg, Torino-grissini, sennep"}, "15": {"name": "Sæsonbestemt frugt & sorbet", "desc": "Frisk sæsonbestemt frugt, håndværks citronsorbetto"}}, "ru": {"1": {"name": "Минеральная вода", "desc": "Негазированная или газированная · 750 мл"}, "2": {"name": "Свежевыжатый сок", "desc": "Красный апельсин, яблоко или грейпфрут · свежий"}, "3": {"name": "Villa Fontana Lemonade", "desc": "Лимон, свежая мята, лавандовый сироп, газированная вода"}, "4": {"name": "Эспрессо / Американо", "desc": "Авторская смесь, средняя обжарка, экстракция при 9 бар"}, "5": {"name": "Выбор чаёв", "desc": "Эрл Грей, Дарджилинг, Зелёный, Ромашка · листовой"}, "6": {"name": "Aperol Spritz", "desc": "Апероль, Просекко DOC, свежий апельсин, лёд"}, "7": {"name": "Hugo", "desc": "Бузина, Просекко, свежая мята, лайм"}, "8": {"name": "Негрони", "desc": "Джин, Кампари, красный Вермут, цедра апельсина"}, "9": {"name": "Moscow Mule", "desc": "Водка, имбирное пиво, свежий лайм"}, "10": {"name": "Virgin Mojito", "desc": "Лайм, свежая мята, тростниковый сахар, содовая · безалкогольный"}, "11": {"name": "Moscato d’Asti DOCG · бокал", "desc": "Сладкое, игристое, ароматное · Ланге и Монферрато"}, "12": {"name": "Barbera d’Asti DOC · бокал", "desc": "Местные производители, насыщенное · зона ЮНЕСКО"}, "13": {"name": "Ассорти брускетты", "desc": "Свежий помидор, сало Арнад, крем из кабачков · 3 вида"}, "14": {"name": "Сырная & мясная доска", "desc": "Альпийские сыры, местные мясные деликатесы, гриссини, горчица"}, "15": {"name": "Сезонные фрукты & сорбет", "desc": "Свежие сезонные фрукты, лимонный сорбет ручной работы"}}};
+
 const MENU=[
-  {id:1,cat:'Antipasti',name:'Carpaccio di ricciola',desc:'Con gelatina di ceviche, cocco e coriandolo',price:22,emoji:'🐟',tag:'chef',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-01.jpg'},
-  {id:2,cat:'Antipasti',name:'Carne cruda tagliata al coltello',desc:'Con rabarbaro, Gran Kinara e maionese di "Tonda Gentile"',price:18,emoji:'🥩',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-02.jpg'},
-  {id:3,cat:'Antipasti',name:'Carciofo, fonduta di Raschera',desc:'Con acciughe e grano saraceno',price:18,emoji:'🌿',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-03.jpg'},
-  {id:4,cat:'Antipasti',name:'Capesante, cardoncelli e Blu di Langa',desc:'Capesante, cardoncelli e Blu di Langa',price:24,emoji:'🫧',tag:'chef',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-05.jpg'},
-  {id:5,cat:'Antipasti',name:'Animella al Moscato d\u2019Asti',desc:'Con asparagi e spuma di funghi di campo',price:20,emoji:'✨',tag:'chef',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-06.jpg'},
-  {id:6,cat:'Primi',name:'Agnolotti del plin di faraona',desc:'Con il suo fondo — pasta fresca all\u2019uovo ripiena',price:18,emoji:'🍝',tag:'chef',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-07.jpg'},
-  {id:7,cat:'Primi',name:'Lasagna al ragù di coniglio',desc:'Con robiola di Roccaverano, zucca e liquirizia',price:19,emoji:'🍝',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-08.jpg'},
-  {id:8,cat:'Primi',name:'Gnocchi ripieni di anatra',desc:'Salsa al foie gras, Marsala e tartufo nero',price:22,emoji:'🍝',tag:'chef',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-09.jpg'},
-  {id:9,cat:'Primi',name:'Risotto alle erbe primaverili',desc:'Carnaroli, limone e anguilla affumicata',price:20,emoji:'🍚',tag:'new',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-11.jpg'},
-  {id:10,cat:'Primi',name:'Spaghetto di Bossolasco',desc:'Alla grappa di Barbera, timo e guanciale di maialino nero affumicato',price:20,emoji:'🍝',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-12.jpg'},
-  {id:11,cat:'Primi',name:'Seppia e piselli',desc:'Seppia e piselli',price:25,emoji:'🦑',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-15.jpg'},
-  {id:12,cat:'Primi',name:'Corba rossa',desc:'Con asparagi, beurre blanc e caviale italiano',price:30,emoji:'🐟',tag:'chef',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-16.jpg'},
-  {id:13,cat:'Secondi',name:'Guancia di maialino in lenta cottura',desc:'Alle tre creme',price:24,emoji:'🍖',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-17.jpg'},
-  {id:14,cat:'Secondi',name:'Filetto di vitello in crosta di grissini',desc:'Crema di patate arrosto e misticanza di primavera',price:28,emoji:'🥩',tag:'chef',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-18.jpg'},
-  {id:15,cat:'Secondi',name:'Piccione "Renard Rouge" alla brace',desc:'Petto, lollipop di coscia, dumpling del suo ragù, erbette e radice di prezzemolo',price:35,emoji:'🍗',tag:'chef',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/villa-fontana-relais-suites-ristorante-2.jpg'},
-  {id:16,cat:'Dolci',name:'Panna cotta alle fragole',desc:'Con meringa e limone',price:12,emoji:'🍮',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/villa-fontana-relais-suites-ristorante-7.jpg'},
-  {id:17,cat:'Dolci',name:'Mousse al mascarpone e caffè',desc:'Con gelato al cioccolato e cardamomo',price:12,emoji:'☕',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/villa-fontana-relais-suites-ristorante-9.jpg'},
-  {id:18,cat:'Dolci',name:'Goloso al cioccolato e amaretti',desc:'Con salsa al caramello salato',price:14,emoji:'🍫',tag:'chef',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/gallery-generica-relais-06.jpg'},
-  {id:19,cat:'Dolci',name:'Babà al rhum, arancia e vaniglia',desc:'Sfera di babà al rhum, arancia e vaniglia',price:14,emoji:'🍰',tag:'chef',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/img-pagina-risto.jpg'},
-  {id:20,cat:'Insalate',name:'Insalata Italiana',desc:'Insalata mista, pomodorini, carote, mozzarella di bufala, olive taggiasche',price:null,emoji:'🥗',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/top-page-gallery-risto.jpg'},
-  {id:21,cat:'Insalate',name:'Caesar Salad',desc:'Iceberg, pancetta croccante, grana, crostini all\u2019aglio e petto di pollo a bassa temperatura',price:null,emoji:'🥗',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/top-page-ristorante-new.jpg'},
-  {id:22,cat:'Vini',name:'Barbera d\u2019Asti',desc:'Produttori locali delle Langhe e Monferrato (zona UNESCO)',price:null,emoji:'🍷',tag:'chef',img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-tartufo.jpg'},
-  {id:23,cat:'Vini',name:'Moscato d\u2019Asti DOCG',desc:'Dolce, aromatico, ideale con i dessert',price:null,emoji:'🥂',tag:null,img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-orari.jpg'},
-  {id:24,cat:'Vini',name:'Barolo DOCG',desc:'Nebbiolo delle Langhe, intenso e strutturato',price:null,emoji:'🍷',tag:'chef',img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-tartufo.jpg'},
-  {id:25,cat:'Vini',name:'Barbaresco DOCG',desc:'Nebbiolo elegante, note di viola e spezie',price:null,emoji:'🍷',tag:null,img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-orari.jpg'},
-  {id:26,cat:'Vini',name:'Langhe e Monferrato',desc:'Selezione di etichette locali — chiedere al sommelier',price:null,emoji:'🍾',tag:null,img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/06/img-1200x630-1.jpg'},
-  {id:27,cat:'Acqua & Coperto',name:'Acqua minerale',desc:'Naturale o frizzante · 750 ml',price:3.50,emoji:'💧',tag:null,img:null},
-  {id:28,cat:'Acqua & Coperto',name:'Coperto',desc:'Per persona',price:4.00,emoji:'🍽',tag:null,img:null},
-];
-const CATEGORIES=[...new Set(MENU.map(i=>i.cat)),'Degustazione'];
+  // ── ANALCOLICI
+  {id:1,cat:'Analcolici',name:'Acqua minerale',desc:'Naturale o frizzante · 750 ml',price:3.50,emoji:'💧',tag:null,img:null},
+  {id:2,cat:'Analcolici',name:'Freshly squeezed juice',desc:'Arancia rossa, mela o pompelmo · spremuta fresca',price:6.00,emoji:'🍊',tag:null,img:null},
+  {id:3,cat:'Analcolici',name:'Villa Fontana Lemonade',desc:'Limone, menta fresca, sciroppo di lavanda, acqua frizzante',price:7.00,emoji:'🍋',tag:'new',img:null},
+
+  // ── HOT DRINKS
+  {id:4,cat:'Hot Drinks',name:'Espresso / Americano',desc:'Miscela artigianale, tostatura media, estratto a 9 bar',price:3.00,emoji:'☕',tag:null,img:null},
+  {id:5,cat:'Hot Drinks',name:'Selection of teas',desc:'Earl Grey, Darjeeling, Green, Chamomile · selezione in foglie',price:5.00,emoji:'🍵',tag:null,img:null},
+
+  // ── COCKTAIL & APERITIVI
+  {id:6,cat:'Cocktail',name:'Aperol Spritz',desc:'Aperol, Prosecco DOC, arancia fresca, ghiaccio',price:10.00,emoji:'🍊',tag:null,img:null},
+  {id:7,cat:'Cocktail',name:'Hugo',desc:'Sambuco dei Colli, Prosecco, menta fresca, lime',price:10.00,emoji:'🌿',tag:null,img:null},
+  {id:8,cat:'Cocktail',name:'Negroni',desc:'Gin, Campari, Vermouth rosso, scorza d’arancia',price:13.00,emoji:'🍸',tag:'chef',img:null},
+  {id:9,cat:'Cocktail',name:'Moscow Mule',desc:'Vodka, ginger beer artigianale, lime fresco',price:13.00,emoji:'🥃',tag:null,img:null},
+  {id:10,cat:'Cocktail',name:'Virgin Mojito',desc:'Lime, menta fresca, zucchero di canna, soda · analcolico',price:8.00,emoji:'🍹',tag:null,img:null},
+
+  // ── VINI & BOLLICINE
+  {id:11,cat:'Vini',name:'Moscato d’Asti DOCG · calice',desc:'Dolce, frizzante, aromatico · Langhe e Monferrato',price:9.00,emoji:'🥂',tag:'chef',img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-orari.jpg'},
+  {id:12,cat:'Vini',name:'Barbera d’Asti DOC · calice',desc:'Produttori locali, intenso e strutturato · zona UNESCO',price:10.00,emoji:'🍷',tag:'chef',img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-tartufo.jpg'},
+
+  // ── SNACK
+  {id:13,cat:'Snack',name:'Mixed bruschette',desc:'Pomodoro fresco, lardo d’Arnad, crema di zucchine · 3 varietà',price:10.00,emoji:'🥖',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/top-page-gallery-risto.jpg'},
+  {id:14,cat:'Snack',name:'Piemontese cheese & charcuterie board',desc:'Tome di alpeggio, salumi locali, grissini di Torino, mostarde',price:18.00,emoji:'🧀',tag:'chef',img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/gallery-generica-ristorante-02.jpg'},
+  {id:15,cat:'Snack',name:'Seasonal fruit & sorbet',desc:'Frutta fresca di stagione, sorbetto artigianale al limone',price:9.00,emoji:'🍧',tag:null,img:'https://www.villafontanaaglianoterme.it/wp-content/uploads/2020/06/villa-fontana-relais-suites-ristorante-7.jpg'},
+]
+const CATEGORIES=[...new Set(MENU.map(i=>i.cat))];
+
+/* ══ STATE ══ */
+let lang='it';
+let t=T['it'];
 let guest={name:'',room:'',location:''};
-let cart=[];let orders=[];let activeCategory='Antipasti';
+let cart=[];
+let orders=[];
+let activeCategory='Analcolici';
 
+/* ══ LANG SELECTION ══ */
+function selectLang(code){
+  lang=code; t=T[code];
+  document.getElementById('lang-screen').classList.add('hide');
+  setTimeout(()=>{
+    document.getElementById('lang-screen').style.display='none';
+    checkRoomMemory();
+  },600);
+}
+
+/* ══ FIREBASE ══ */
 function fbPushOrder(o){if(!window._fbReady)return;try{window._fbPush(window._fbRef(window._fbDB,'orders'),o);}catch(e){}}
-function fbListenOrders(){if(!window._fbReady)return;try{window._fbOnValue(window._fbRef(window._fbDB,'orders'),snap=>{const d=snap.val();if(!d)return;Object.entries(d).forEach(([k,o])=>{const l=orders.find(x=>x.id===o.id);if(l&&l.status!==o.status){l.status=o.status;l._fbKey=k;renderOrdersList();if(o.status==='preparing')showToast('👨\u200d🍳 Il tuo ordine è in preparazione!');if(o.status==='delivering')showToast('🛎 Il tuo ordine è in arrivo!');if(o.status==='delivered')showToast('\u2705 Ordine consegnato. Buon appetito!');}if(l&&!l._fbKey)l._fbKey=k;});});}catch(e){}}
-window.addEventListener('firebase-ready',fbListenOrders);
+function fbListenOrders(){
+  if(!window._fbReady)return;
+  try{window._fbOnValue(window._fbRef(window._fbDB,'orders'),snap=>{
+    const d=snap.val();if(!d)return;
+    Object.entries(d).forEach(([k,o])=>{
+      const l=orders.find(x=>x.id===o.id);
+      if(l&&l.status!==o.status){l.status=o.status;l._fbKey=k;renderOrdersList();
+        if(o.status==='preparing')showToast(t.preparing_msg);
+        if(o.status==='delivering')showToast(t.delivering_msg);
+        if(o.status==='delivered')showToast(t.delivered_msg);
+      }
+      if(l&&!l._fbKey)l._fbKey=k;
+    });
+  });}catch(e){}
+}
+window.addEventListener('firebase-ready',()=>{fbListenOrders();});
 
+/* ══ ROOM MEMORY — check if room already has a guest ══ */
+function checkRoomMemory(){
+  // We need room selection first for new guests
+  // Show check-in but first check if URL has room param
+  const urlRoom = new URLSearchParams(window.location.search).get('room');
+  if(urlRoom){
+    // QR code has room encoded — check Firebase for existing guest
+    checkFirebaseRoom(urlRoom);
+  } else {
+    showCheckIn();
+  }
+}
+
+function checkFirebaseRoom(roomKey){
+  if(!window._fbReady){
+    window.addEventListener('firebase-ready',()=>checkFirebaseRoom(roomKey));
+    return;
+  }
+  try{
+    const roomRef=window._fbRef(window._fbDB,'rooms/'+roomKey.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,''));
+    window._fbGet(roomRef).then(snap=>{
+      const data=snap.val();
+      if(data&&data.guest&&data.guest.trim()!==''){
+        // Returning guest
+        guest={name:data.guest,room:roomKey,location:''};
+        showReturningScreen(data.guest,roomKey);
+      } else {
+        // New guest - pre-fill room
+        showCheckIn(roomKey);
+      }
+    }).catch(()=>showCheckIn(roomKey));
+  }catch(e){showCheckIn(roomKey);}
+}
+
+function showReturningScreen(name,room){
+  applyLangToUI();
+  document.getElementById('ret-welcome-lbl').textContent=t.returning_welcome;
+  document.getElementById('ret-guest-name').textContent=name;
+  // Show room in current language
+  const rw=ROOM_WORD[lang]||'Camera';
+  const roomNum=room.replace(/\D/g,'');
+  document.getElementById('ret-guest-room').textContent=roomNum?`${rw} ${roomNum}`:room;
+  document.getElementById('btn-continue').textContent=t.continue;
+  document.getElementById('btn-not-me').textContent=t.not_you;
+  document.getElementById('returning-screen').classList.add('visible');
+}
+
+function continueAsReturning(){
+  const loc=document.getElementById('ret-location').value;
+  guest.location=loc;
+  document.getElementById('returning-screen').classList.remove('visible');
+  launchApp();
+}
+
+function resetAndRegister(){
+  // Clear room memory and show fresh check-in
+  const urlRoom=new URLSearchParams(window.location.search).get('room');
+  if(urlRoom&&window._fbReady){
+    try{
+      const roomKey=urlRoom.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+      window._fbSet(window._fbRef(window._fbDB,'rooms/'+roomKey),{guest:''});
+    }catch(e){}
+  }
+  document.getElementById('returning-screen').classList.remove('visible');
+  showCheckIn(urlRoom||'');
+}
+
+function showCheckIn(preRoom){
+  applyLangToUI();
+  if(preRoom){
+    const sel=document.getElementById('input-room');
+    [...sel.options].forEach(o=>{if(o.text===preRoom||o.value===preRoom)o.selected=true;});
+  }
+  document.getElementById('splash').classList.add('visible');
+}
+
+/* ══ APPLY LANGUAGE TO ALL UI ELEMENTS ══ */
+function applyLangToUI(){
+  const setT=(id,key)=>{const el=document.getElementById(id);if(el)el.textContent=t[key]||'';}
+  setT('checkin-title','welcome');
+  setT('lbl-name','your_name');
+  setT('lbl-room','your_room');
+  setT('lbl-location','location');
+  setT('btn-checkin','enter');
+  setT('splash-footer-txt','hours');
+  setT('splash-badge-txt','extra_service');
+  setT('header-sub-txt','extra_service');
+  setT('tab-menu-lbl','menu');
+  setT('tab-orders-lbl','orders');
+  setT('cart-title-txt','your_order');
+  setT('cart-total-lbl','total');
+  setT('special-req-lbl','special_requests');
+  setT('btn-order','send_order');
+  setT('orders-eyebrow-txt','extra_service');
+  setT('orders-title-txt','my_orders');
+  setT('loc-label-txt','pos_label');
+  const inp=document.getElementById('input-name');if(inp)inp.placeholder=t.your_name||'';
+  const sr=document.getElementById('special-req');if(sr)sr.placeholder=t.allergies_placeholder||'';
+  const oRP=document.getElementById('opt-room-placeholder');if(oRP)oRP.textContent=t.select_room;
+  const oLP=document.getElementById('opt-loc-placeholder');if(oLP)oLP.textContent=t.select_location;
+
+  // ── Rebuild room options with translated room word
+  const rw = ROOM_WORD[lang] || 'Camera';
+  const roomSel = document.getElementById('input-room');
+  if(roomSel){
+    const cur = roomSel.value;
+    roomSel.innerHTML = `<option value="" id="opt-room-placeholder">${t.select_room}</option>`
+      + Array.from({length:10},(_,i)=>`<option value="${rw} ${i+1}">${rw} ${i+1}</option>`).join('');
+    // Try to restore selection by number
+    const num = cur.replace(/\D/g,'');
+    if(num) roomSel.value = `${rw} ${num}`;
+  }
+
+  // ── Rebuild location options (checkin + app bar)
+  const locs = LOC_TRANSLATIONS[lang] || LOC_TRANSLATIONS['it'];
+  const locsIT = LOC_TRANSLATIONS['it'];
+
+  const buildLocOptions = (selectEl, includeBlank) => {
+    if(!selectEl) return;
+    const curIdx = selectEl.selectedIndex - (includeBlank ? 1 : 0);
+    let opts = includeBlank ? `<option value="" id="opt-loc-placeholder">${t.select_location}</option>` : '';
+    opts += locs.map((l,i) => `<option value="${locsIT[i]}">${l}</option>`).join('');
+    selectEl.innerHTML = opts;
+    if(curIdx >= 0 && curIdx < locs.length) selectEl.selectedIndex = curIdx + (includeBlank ? 1 : 0);
+  };
+
+  buildLocOptions(document.getElementById('input-location'), true);
+  buildLocOptions(document.getElementById('disp-location'), false);
+  buildLocOptions(document.getElementById('ret-location'), false);
+}
+
+/* ══ CHECK-IN ══ */
 function doCheckIn(){
   const name=document.getElementById('input-name').value.trim();
   const room=document.getElementById('input-room').value;
   const loc=document.getElementById('input-location').value;
   if(!name||!room||!loc){shakeMissing([!name&&'input-name',!room&&'input-room',!loc&&'input-location'].filter(Boolean));return;}
   guest={name,room,location:loc};
-  document.getElementById('disp-name').textContent=name;
-  document.getElementById('disp-room').textContent=room;
-  const ls=document.getElementById('disp-location');[...ls.options].forEach(o=>{if(o.text===loc)o.selected=true;});
-  document.getElementById('cart-loc-disp').textContent=loc;
-  document.getElementById('cart-room-disp').textContent=room;
-  const sp=document.getElementById('splash');sp.classList.add('fade-out');
-  setTimeout(()=>{sp.style.display='none';document.getElementById('app').classList.add('visible');buildCatNav();renderMenu();},900);
+  // Save to Firebase
+  if(window._fbReady){
+    try{
+      const roomKey=room.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+      window._fbSet(window._fbRef(window._fbDB,'rooms/'+roomKey),{guest:name,checkin:Date.now()});
+    }catch(e){}
+  }
+  document.getElementById('splash').classList.add('fade-out');
+  setTimeout(()=>{document.getElementById('splash').classList.remove('visible','fade-out');launchApp();},900);
 }
-function shakeMissing(ids){ids.forEach(id=>{const el=document.getElementById(id);el.style.borderBottomColor='#AC4A4A';el.style.animation='shake 0.4s ease';setTimeout(()=>{el.style.animation='';el.style.borderBottomColor='';},600);});}
-const _s=document.createElement('style');_s.textContent='@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}';document.head.appendChild(_s);
-function updateLocation(v){guest.location=v;document.getElementById('cart-loc-disp').textContent=v;}
 
+function shakeMissing(ids){ids.forEach(id=>{const el=document.getElementById(id);if(!el)return;el.style.borderBottomColor='#AC4A4A';el.style.animation='shake 0.4s ease';setTimeout(()=>{el.style.animation='';el.style.borderBottomColor='';},600);});}
+const _s=document.createElement('style');_s.textContent='@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}';document.head.appendChild(_s);
+
+function launchApp(){
+  document.getElementById('disp-name').textContent=guest.name;
+  // Show room number in current language
+  const rw=ROOM_WORD[lang]||'Camera';
+  const roomNum=guest.room.replace(/\D/g,'');
+  const roomDisplay=roomNum?`${rw} ${roomNum}`:guest.room;
+  document.getElementById('disp-room').textContent=roomDisplay;
+  // Show translated location
+  const locIdx=(LOC_TRANSLATIONS['it']||[]).indexOf(guest.location);
+  const locDisplay=locIdx>=0?(LOC_TRANSLATIONS[lang]||[])[locIdx]||guest.location:guest.location;
+  const ls=document.getElementById('disp-location');
+  if(ls){[...ls.options].forEach(o=>{if(o.value===guest.location)o.selected=true;});}
+  document.getElementById('cart-loc-disp').textContent=locDisplay||'—';
+  document.getElementById('cart-room-disp').textContent=roomDisplay;
+  document.getElementById('app').classList.add('visible');
+  buildCatNav();renderMenu();
+}
+
+function updateLocation(v){
+  guest.location=v;
+  // v is stored as Italian key, display translated
+  const locIdx=(LOC_TRANSLATIONS['it']||[]).indexOf(v);
+  const locDisplay=locIdx>=0?(LOC_TRANSLATIONS[lang]||[])[locIdx]||v:v;
+  document.getElementById('cart-loc-disp').textContent=locDisplay;
+}
+
+/* ══ CAT NAV ══ */
 function buildCatNav(){
-  document.getElementById('cat-nav').innerHTML=CATEGORIES.map(c=>`<button class="cat-btn ${c===activeCategory?'active':''}" onclick="setCategory('${c}')">${c}</button>`).join('');
+  document.getElementById('cat-nav').innerHTML=CATEGORIES.map(c=>{
+    const label=(CAT_TRANSLATIONS[lang]&&CAT_TRANSLATIONS[lang][c])||c;
+    return `<button class="cat-btn ${c===activeCategory?'active':''}" onclick="setCategory('${c}')">${label}</button>`;
+  }).join('');
 }
 function setCategory(c){activeCategory=c;buildCatNav();renderMenu();document.getElementById('menu-wrap').scrollIntoView({behavior:'smooth',block:'start'});}
 
+/* ══ MENU RENDER ══ */
 function renderMenu(){
   const w=document.getElementById('menu-wrap');
-  if(activeCategory==='Degustazione'){
-    w.innerHTML=`<div class="section-head"><span class="section-eyebrow">Esperienza completa</span><h2 class="section-title">${DEGUSTAZIONE.nome}</h2><div class="section-rule"></div></div>
-    <div class="deg-card"><div class="deg-price-row"><span class="deg-price-label">${DEGUSTAZIONE.note}</span><span class="deg-price">€ ${DEGUSTAZIONE.prezzo.toFixed(2).replace('.',',')}</span></div>
-    <div class="deg-portate">${DEGUSTAZIONE.portate.map((p,i)=>`<div class="deg-portata"><span class="deg-num">${i+1}.</span><span class="deg-portata-name">${p}</span></div>`).join('')}</div>
-    <button class="btn-add-deg" onclick="addDegustazione()">Aggiungi al tuo ordine</button></div>`;return;
-  }
+
   const items=MENU.filter(i=>i.cat===activeCategory);
   const inC=new Set(cart.map(c=>c.item.id));
-  w.innerHTML=`<div class="section-head"><span class="section-eyebrow">La Fontana del Re · Primavera 2026</span><h2 class="section-title">${activeCategory}</h2><div class="section-rule"></div></div>
+  const catLabel=(CAT_TRANSLATIONS[lang]&&CAT_TRANSLATIONS[lang][activeCategory])||activeCategory;
+  w.innerHTML=`<div class="section-head"><span class="section-eyebrow">${t.season}</span><h2 class="section-title">${catLabel}</h2><div class="section-rule"></div></div>
   <div class="menu-grid">${items.map(item=>itemCard(item,inC.has(item.id))).join('')}</div>`;
 }
+
 function itemCard(item,inC){
-  const tM={chef:'⭐ Chef',veg:'Veg',new:'Novità'};const tC={chef:'tag-chef',veg:'tag-veg',new:'tag-new'};
-  const pH=item.price!==null?`<span class="item-price">€ ${item.price.toFixed(2).replace('.',',')}</span>`:`<span class="item-price-na">Chiedere al sommelier</span>`;
+  const tC={chef:'tag-chef',veg:'tag-veg',new:'tag-new'};
+  const tL={chef:t.tag_chef,veg:t.tag_veg,new:t.tag_new};
+  // Use translated name and desc if available
+  const tr = (MENU_TRANSLATIONS[lang] && MENU_TRANSLATIONS[lang][item.id]) || {};
+  const itemName = tr.name || item.name;
+  const itemDesc = tr.desc || item.desc;
+  const pH=item.price!==null?`<span class="item-price">€ ${item.price.toFixed(2).replace('.',',')}</span>`:`<span class="item-price-na">${t.ask_sommelier}</span>`;
   const can=item.price!==null;
-  const ih=item.img?`<img src="${item.img}" alt="${item.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:'';
+  const ih=item.img?`<img src="${item.img}" alt="${itemName}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:'';
   const fs=item.img?'display:none':'display:flex';
-  return `<div class="menu-item${can?'':' no-price'}" ${can?`onclick="addToCart(${item.id})"`:''}><div class="item-photo">${ih}<div class="fallback" style="${fs}">${item.emoji}</div>${item.tag?`<span class="item-tag ${tC[item.tag]||''}">${tM[item.tag]||item.tag}</span>`:''}</div><div class="item-body"><div class="item-name">${item.name}</div><div class="item-desc">${item.desc}</div><div class="item-foot">${pH}${can?`<button class="add-btn ${inC?'in-cart':''}" onclick="event.stopPropagation();addToCart(${item.id})">${inC?'✓':'+'}</button>`:''}</div></div></div>`;
+  return `<div class="menu-item${can?'':' no-price'}" ${can?`onclick="addToCart(${item.id})"`:''}><div class="item-photo">${ih}<div class="fallback" style="${fs}">${item.emoji}</div>${item.tag?`<span class="item-tag ${tC[item.tag]||''}">${tL[item.tag]||item.tag}</span>`:''}</div><div class="item-body"><div class="item-name">${itemName}</div><div class="item-desc">${itemDesc}</div><div class="item-foot">${pH}${can?`<button class="add-btn ${inC?'in-cart':''}" onclick="event.stopPropagation();addToCart(${item.id})">${inC?'✓':'+'}</button>`:''}</div></div></div>`;
 }
-function addToCart(id){const item=MENU.find(i=>i.id===id);const ex=cart.find(c=>c.item.id===id);if(ex)ex.qty++;else cart.push({item,qty:1,note:''});updateCartBadge();renderMenu();renderCartItems();showToast(item.emoji+' '+item.name+' aggiunto');}
-function addDegustazione(){const ex=cart.find(c=>c.item.id==='deg');if(ex)ex.qty++;else cart.push({item:{id:'deg',name:'Menù Degustazione Contemporaneo',price:DEGUSTAZIONE.prezzo,emoji:'⭐',cat:'Degustazione'},qty:1,note:''});updateCartBadge();showToast('⭐ Menù Degustazione aggiunto');}
-function removeFromCart(id){cart=cart.filter(c=>c.item.id!==id);updateCartBadge();renderMenu();renderCartItems();}
-function changeQty(id,d){const e=cart.find(c=>c.item.id===id);if(!e)return;e.qty+=d;if(e.qty<=0){removeFromCart(id);return;}updateCartBadge();renderCartItems();}
-function updateNote(id,v){const e=cart.find(c=>c.item.id===id);if(e)e.note=v;}
-function updateCartBadge(){const t=cart.reduce((s,c)=>s+c.qty,0);const b=document.getElementById('cart-count');b.textContent=t;b.classList.toggle('hidden',t===0);document.getElementById('btn-order').disabled=cart.length===0;updateCartTotal();}
-function updateCartTotal(){const t=cart.reduce((s,c)=>s+((c.item.price||0)*c.qty),0);document.getElementById('cart-total').textContent='€ '+t.toFixed(2).replace('.',',');}
+
+/* ══ CART ══ */
+function addToCart(id){
+  id=Number(id);
+  const item=MENU.find(i=>i.id===id);
+  const ex=cart.find(c=>c.item.id===id);
+  if(ex)ex.qty++;else cart.push({item,qty:1,note:''});
+  updateCartBadge();renderMenu();renderCartItems();
+  const tr=(MENU_TRANSLATIONS[lang]&&MENU_TRANSLATIONS[lang][item.id])||{};
+  showToast(item.emoji+' '+(tr.name||item.name)+' '+t.added);
+}
+
+function removeFromCart(id){const nid=isNaN(id)?id:Number(id);cart=cart.filter(c=>c.item.id!==nid);updateCartBadge();renderMenu();renderCartItems();}
+function changeQty(id,d){const nid=isNaN(id)?id:Number(id);const e=cart.find(c=>c.item.id===nid);if(!e)return;e.qty+=d;if(e.qty<=0){removeFromCart(nid);return;}updateCartBadge();renderCartItems();}
+function updateNote(id,v){const nid=isNaN(id)?id:Number(id);const e=cart.find(c=>c.item.id===nid);if(e)e.note=v;}
+function updateCartBadge(){const tot=cart.reduce((s,c)=>s+c.qty,0);const b=document.getElementById('cart-count');b.textContent=tot;b.classList.toggle('hidden',tot===0);document.getElementById('btn-order').disabled=cart.length===0;updateCartTotal();}
+function updateCartTotal(){const tot=cart.reduce((s,c)=>s+((c.item.price||0)*c.qty),0);document.getElementById('cart-total').textContent='€ '+tot.toFixed(2).replace('.',',');}
 function renderCartItems(){
   const el=document.getElementById('cart-items-list');
-  if(!cart.length){el.innerHTML='<div class="cart-empty"><span class="cart-empty-icon">🍽</span><p>Nessun articolo nel carrello.</p></div>';return;}
-  el.innerHTML=cart.map(e=>`<div class="cart-item"><span class="ci-emoji">${e.item.emoji}</span><div class="ci-info"><div class="ci-name">${e.item.name}</div><div class="ci-price">€ ${((e.item.price||0)*e.qty).toFixed(2).replace('.',',')}${e.qty>1?` (${e.qty}×€${(e.item.price||0).toFixed(2).replace('.',',')})`:''}
-  </div><textarea class="ci-note" rows="1" placeholder="Note…" onchange="updateNote('${e.item.id}',this.value)" onfocus="this.rows=2" onblur="this.rows=1">${e.note}</textarea></div><div class="qty-ctrl"><button class="qty-btn" onclick="changeQty('${e.item.id}',-1)">−</button><span class="qty-val">${e.qty}</span><button class="qty-btn" onclick="changeQty('${e.item.id}',+1)">+</button></div></div>`).join('');
+  if(!cart.length){el.innerHTML=`<div class="cart-empty"><span class="cart-empty-icon">🍽</span><p>${t.cart_empty}</p></div>`;return;}
+  el.innerHTML=cart.map(e=>`<div class="cart-item"><span class="ci-emoji">${e.item.emoji}</span><div class="ci-info"><div class="ci-name">${(MENU_TRANSLATIONS[lang]&&MENU_TRANSLATIONS[lang][e.item.id]&&MENU_TRANSLATIONS[lang][e.item.id].name)||e.item.name}</div><div class="ci-price">€ ${((e.item.price||0)*e.qty).toFixed(2).replace('.',',')}${e.qty>1?` (${e.qty}×€${(e.item.price||0).toFixed(2).replace('.',',')})`:''}
+</div><textarea class="ci-note" rows="1" placeholder="${t.add_note}" onchange="updateNote(${e.item.id},this.value)" onfocus="this.rows=2" onblur="this.rows=1">${e.note}</textarea></div><div class="qty-ctrl"><button class="qty-btn" onclick="changeQty(${e.item.id},-1)">−</button><span class="qty-val">${e.qty}</span><button class="qty-btn" onclick="changeQty(${e.item.id},+1)">+</button></div></div>`).join('');
 }
 function toggleCart(){const o=document.getElementById('cart-overlay'),s=document.getElementById('cart-sidebar');const op=s.classList.contains('open');o.classList.toggle('open',!op);s.classList.toggle('open',!op);if(!op)renderCartItems();}
 
+/* ══ PLACE ORDER ══ */
 function placeOrder(){
   if(!cart.length)return;
   const now=new Date();
   const order={id:'ORD-'+Date.now().toString(36).toUpperCase(),timestamp:Date.now(),
     date:now.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}),
     time:now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
-    location:guest.location,room:guest.room,guest:guest.name,
+    location:guest.location,room:guest.room,guest:guest.name,lang:lang,
     items:cart.map(c=>({name:c.item.name,qty:c.qty,price:c.item.price||0,note:c.note||'',emoji:c.item.emoji})),
     total:cart.reduce((s,c)=>s+((c.item.price||0)*c.qty),0),
     specialReq:document.getElementById('special-req').value.trim()||'',status:'received'};
   orders.unshift(order);cart=[];document.getElementById('special-req').value='';
   updateCartBadge();renderCartItems();renderMenu();toggleCart();
-  fbPushOrder(order);showToast('✦ Ordine inviato con successo!');
+  fbPushOrder(order);showToast(t.order_sent);
 }
 
-const SL={received:'Ricevuto',preparing:'In preparazione',delivering:'In consegna',delivered:'Consegnato'};
-const SC={received:'s-received',preparing:'s-preparing',delivering:'s-delivering',delivered:'s-delivered'};
+/* ══ ORDERS LIST ══ */
 function renderOrdersList(){
   const el=document.getElementById('orders-list');
-  if(!orders.length){el.innerHTML='<div class="no-orders"><p>Nessun ordine ancora.<br>Sfoglia il menu e ordina!</p></div>';return;}
-  el.innerHTML=orders.map(o=>`<div class="order-card"><div class="order-card-head"><div><div class="order-id-text">${o.id}</div><div class="order-time-text">📅 ${o.date} · ⏱ ${o.time}</div></div><span class="order-status-badge ${SC[o.status]||'s-received'}">${SL[o.status]||o.status}</span></div><div class="order-card-body"><div class="order-meta"><span>📍 <strong>${o.location}</strong></span><span>🛏 <strong>${o.room}</strong></span></div><ul class="order-items-list">${o.items.map(i=>`<li><span><span class="oi-qty">${i.qty}×</span>${i.emoji} ${i.name}${i.note?` <em style="color:var(--gray);font-size:0.65rem">(${i.note})</em>`:''}</span><span>€ ${(i.price*i.qty).toFixed(2).replace('.',',')}</span></li>`).join('')}</ul>${o.specialReq?`<div class="order-note-block">📝 ${o.specialReq}</div>`:''}<div class="order-total-row"><span class="otr-label">Totale ordine</span><span class="otr-amount">€ ${o.total.toFixed(2).replace('.',',')}</span></div></div></div>`).join('');
+  if(!orders.length){el.innerHTML=`<div class="no-orders"><p>${t.no_orders.replace('\n','<br>')}</p></div>`;return;}
+  const SL={received:t.status_received,preparing:t.status_preparing,delivering:t.status_delivering,delivered:t.status_delivered};
+  const SC={received:'s-received',preparing:'s-preparing',delivering:'s-delivering',delivered:'s-delivered'};
+  el.innerHTML=orders.map(o=>`<div class="order-card"><div class="order-card-head"><div><div class="order-id-text">${o.id}</div><div class="order-time-text">📅 ${o.date} · ⏱ ${o.time}</div></div><span class="order-status-badge ${SC[o.status]||'s-received'}">${SL[o.status]||o.status}</span></div><div class="order-card-body"><div class="order-meta"><span>📍 <strong>${o.location}</strong></span><span>🛏 <strong>${o.room}</strong></span></div><ul class="order-items-list">${o.items.map(i=>`<li><span><span class="oi-qty">${i.qty}×</span>${i.emoji} ${i.name}${i.note?` <em style="color:var(--gray);font-size:0.65rem">(${i.note})</em>`:''}</span><span>€ ${(i.price*i.qty).toFixed(2).replace('.',',')}</span></li>`).join('')}</ul>${o.specialReq?`<div class="order-note-block">📝 ${o.specialReq}</div>`:''}<div class="order-total-row"><span class="otr-label">${t.order_total}</span><span class="otr-amount">€ ${o.total.toFixed(2).replace('.',',')}</span></div></div></div>`).join('');
 }
 
+/* ══ TABS ══ */
 function switchTab(tab){
   const mw=document.getElementById('menu-wrap'),ow=document.getElementById('orders-wrap');
   const cn=document.getElementById('cat-nav'),lb=document.querySelector('.location-bar');
@@ -579,8 +849,9 @@ function switchTab(tab){
   if(tab==='menu'){mw.style.display='';cn.style.display='';lb.style.display='';ow.classList.remove('visible');tm.classList.add('active');to.classList.remove('active');}
   else{mw.style.display='none';cn.style.display='none';lb.style.display='none';ow.classList.add('visible');tm.classList.remove('active');to.classList.add('active');renderOrdersList();}
 }
+
 let _tt;
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2800);}
+function showToast(msg){const t2=document.getElementById('toast');t2.textContent=msg;t2.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t2.classList.remove('show'),2800);}
 </script>
 </body>
 </html>
