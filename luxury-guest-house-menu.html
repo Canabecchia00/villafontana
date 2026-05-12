@@ -543,6 +543,35 @@ body{
 }
 .toast.show{opacity:1;transform:translateY(0);}
 
+/* ── CONNESSIONE INDICATOR ── */
+.conn-bar{
+  position:fixed;top:54px;left:0;right:0;z-index:99;
+  padding:0.45rem 1rem;
+  font-size:0.65rem;font-weight:700;letter-spacing:0.15rem;text-transform:uppercase;
+  text-align:center;
+  transition:opacity 0.4s,transform 0.4s;
+  transform:translateY(-100%);opacity:0;
+  pointer-events:none;
+}
+.conn-bar.show{transform:translateY(0);opacity:1;}
+.conn-bar.offline{background:#9C3A3A;color:#FFD0D0;}
+.conn-bar.online{background:#3D7A52;color:#D0FFE0;}
+
+/* ── FUORI ORARIO BANNER ── */
+.closed-banner{
+  display:none;
+  background:var(--charcoal);
+  border-bottom:2px solid var(--teal);
+  padding:0.8rem 1rem;
+  text-align:center;
+}
+.closed-banner.show{display:block;}
+.closed-banner p{font-size:0.75rem;color:rgba(255,255,255,0.7);font-weight:300;line-height:1.6;}
+.closed-banner strong{color:var(--teal-light);font-weight:700;}
+
+/* ── ORDINE DISABILITATO fuori orario ── */
+.btn-order.closed{background:#555;cursor:not-allowed;}
+
 /* ══════════════════════════════
    ANIMATIONS
 ══════════════════════════════ */
@@ -609,14 +638,6 @@ body{
     <div class="ret-welcome" id="ret-welcome-lbl">Bentornato</div>
     <div class="ret-name" id="ret-guest-name">—</div>
     <div class="ret-room" id="ret-guest-room">—</div>
-    <div class="field-group-ret">
-      <label id="ret-loc-lbl">Dove sei</label>
-      <select id="ret-location">
-        <option>In camera</option><option>Piscina</option><option>Terrazza panoramica</option>
-        <option>Spa &amp; Wellness</option><option>Giardino</option>
-        <option>Sala colazioni</option><option>Lounge bar</option>
-      </select>
-    </div>
     <button class="btn-continue" id="btn-continue" onclick="continueAsReturning()">Continua</button>
     <br>
     <button class="btn-not-me" id="btn-not-me" onclick="resetAndRegister()">Non sei tu?</button>
@@ -648,15 +669,6 @@ body{
         <option>Camera 10</option>
       </select>
     </div>
-    <div class="field-group">
-      <label id="lbl-location">Dove sei</label>
-      <select id="input-location">
-        <option value="" id="opt-loc-placeholder">— Seleziona posizione —</option>
-        <option>In camera</option><option>Piscina</option><option>Terrazza panoramica</option>
-        <option>Spa &amp; Wellness</option><option>Giardino</option>
-        <option>Sala colazioni</option><option>Lounge bar</option>
-      </select>
-    </div>
     <button class="btn-checkin" id="btn-checkin" onclick="doCheckIn()">Accedi al Menu</button>
   </div>
   <div class="splash-footer" id="splash-footer-txt">Pranzo 12:30–14:00 · Cena 19:30–21:00 · Chiuso mer. e gio.</div>
@@ -664,6 +676,12 @@ body{
 
 <!-- APP -->
 <div id="app">
+  <!-- Indicatore connessione -->
+  <div class="conn-bar" id="conn-bar"></div>
+  <!-- Banner fuori orario -->
+  <div class="closed-banner" id="closed-banner">
+    <p id="closed-msg">🕐 <strong>Servizio non disponibile</strong><br>Orari: Pranzo 12:30–14:00 · Cena 19:30–21:00 · Chiuso mer. e gio.</p>
+  </div>
   <header class="app-header">
     <div class="header-brand">
       <img class="header-ornament" src="https://www.villafontanaaglianoterme.it/wp-content/themes/villafontana2020/dist/images/logo-bianco.svg" onerror="this.style.display='none'" alt="">
@@ -730,10 +748,23 @@ body{
       <span class="ct-amount" id="cart-total">€ 0,00</span>
     </div>
     <div class="special-req-group">
+      <label id="cart-loc-lbl">📍 Dove sei adesso</label>
+      <select id="cart-location-select" style="width:100%;background:var(--cream);border:1px solid var(--divider);padding:0.6rem 0.8rem;font-family:'Lato',sans-serif;font-size:0.85rem;color:var(--charcoal);outline:none;-webkit-appearance:none;border-radius:0;transition:border-color 0.2s;" onchange="updateLocationFromCart(this.value)">
+        <option value="" id="cart-loc-placeholder">— Seleziona posizione —</option>
+        <option value="In camera">In camera</option>
+        <option value="Piscina">Piscina</option>
+        <option value="Terrazza panoramica">Terrazza panoramica</option>
+        <option value="Spa &amp; Wellness">Spa &amp; Wellness</option>
+        <option value="Giardino">Giardino</option>
+        <option value="Sala colazioni">Sala colazioni</option>
+        <option value="Lounge bar">Lounge bar</option>
+      </select>
+    </div>
+    <div class="special-req-group">
       <label id="special-req-lbl">Richieste speciali</label>
       <textarea id="special-req" placeholder="Allergie, preferenze, note…"></textarea>
     </div>
-    <button class="btn-order" id="btn-order" onclick="placeOrder()" disabled id="btn-order-txt">Invia ordine</button>
+    <button class="btn-order" id="btn-order" onclick="placeOrder()" disabled>Invia ordine</button>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -764,29 +795,29 @@ const MENU_TRANSLATIONS = {"it": {"1": {"name": "Acqua minerale", "desc": "Natur
 
 const MENU=[
   // ── ANALCOLICI
-  {id:1,cat:'Analcolici',name:'Acqua minerale',desc:'Naturale o frizzante · 750 ml',price:3.50,emoji:'💧',tag:null,img:null},
-  {id:2,cat:'Analcolici',name:'Freshly squeezed juice',desc:'Arancia rossa, mela o pompelmo · spremuta fresca',price:6.00,emoji:'🍊',tag:null,img:null},
-  {id:3,cat:'Analcolici',name:'Villa Fontana Lemonade',desc:'Limone, menta fresca, sciroppo di lavanda, acqua frizzante',price:7.00,emoji:'🍋',tag:'new',img:null},
+  {id:1,cat:'Analcolici',name:'Acqua minerale',desc:'Naturale o frizzante · 750 ml',price:3.50,emoji:'💧',tag:null,img:'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=600&q=80&fit=crop&crop=center'},
+  {id:2,cat:'Analcolici',name:'Freshly squeezed juice',desc:'Arancia rossa, mela o pompelmo · spremuta fresca',price:6.00,emoji:'🍊',tag:null,img:'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&q=80&fit=crop&crop=center'},
+  {id:3,cat:'Analcolici',name:'Villa Fontana Lemonade',desc:'Limone, menta fresca, sciroppo di lavanda, acqua frizzante',price:7.00,emoji:'🍋',tag:'new',img:'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=600&q=80&fit=crop&crop=center'},
 
   // ── HOT DRINKS
-  {id:4,cat:'Hot Drinks',name:'Espresso / Americano',desc:'Miscela artigianale, tostatura media, estratto a 9 bar',price:3.00,emoji:'☕',tag:null,img:null},
-  {id:5,cat:'Hot Drinks',name:'Selection of teas',desc:'Earl Grey, Darjeeling, Green, Chamomile · selezione in foglie',price:5.00,emoji:'🍵',tag:null,img:null},
+  {id:4,cat:'Hot Drinks',name:'Espresso / Americano',desc:'Miscela artigianale, tostatura media, estratto a 9 bar',price:3.00,emoji:'☕',tag:null,img:'https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&q=80&fit=crop&crop=center'},
+  {id:5,cat:'Hot Drinks',name:'Selection of teas',desc:'Earl Grey, Darjeeling, Green, Chamomile · selezione in foglie',price:5.00,emoji:'🍵',tag:null,img:'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&q=80&fit=crop&crop=center'},
 
   // ── COCKTAIL & APERITIVI
-  {id:6,cat:'Cocktail',name:'Aperol Spritz',desc:'Aperol, Prosecco DOC, arancia fresca, ghiaccio',price:10.00,emoji:'🍊',tag:null,img:null},
-  {id:7,cat:'Cocktail',name:'Hugo',desc:'Sambuco dei Colli, Prosecco, menta fresca, lime',price:10.00,emoji:'🌿',tag:null,img:null},
-  {id:8,cat:'Cocktail',name:'Negroni',desc:'Gin, Campari, Vermouth rosso, scorza d’arancia',price:13.00,emoji:'🍸',tag:'chef',img:null},
-  {id:9,cat:'Cocktail',name:'Moscow Mule',desc:'Vodka, ginger beer artigianale, lime fresco',price:13.00,emoji:'🥃',tag:null,img:null},
-  {id:10,cat:'Cocktail',name:'Virgin Mojito',desc:'Lime, menta fresca, zucchero di canna, soda · analcolico',price:8.00,emoji:'🍹',tag:null,img:null},
+  {id:6,cat:'Cocktail',name:'Aperol Spritz',desc:'Aperol, Prosecco DOC, arancia fresca, ghiaccio',price:10.00,emoji:'🍊',tag:null,img:'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=600&q=80&fit=crop&crop=center'},
+  {id:7,cat:'Cocktail',name:'Hugo',desc:'Sambuco dei Colli, Prosecco, menta fresca, lime',price:10.00,emoji:'🌿',tag:null,img:'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&q=80&fit=crop&crop=top'},
+  {id:8,cat:'Cocktail',name:'Negroni',desc:'Gin, Campari, Vermouth rosso, scorza d’arancia',price:13.00,emoji:'🍸',tag:'chef',img:'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=600&q=80&fit=crop&crop=center'},
+  {id:9,cat:'Cocktail',name:'Moscow Mule',desc:'Vodka, ginger beer artigianale, lime fresco',price:13.00,emoji:'🥃',tag:null,img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&q=80&fit=crop&crop=center'},
+  {id:10,cat:'Cocktail',name:'Virgin Mojito',desc:'Lime, menta fresca, zucchero di canna, soda · analcolico',price:8.00,emoji:'🍹',tag:null,img:'https://images.unsplash.com/photo-1587223962930-cb7f31384c19?w=600&q=80&fit=crop&crop=center'},
 
   // ── VINI & BOLLICINE
-  {id:11,cat:'Vini',name:'Moscato d’Asti DOCG · calice',desc:'Dolce, frizzante, aromatico · Langhe e Monferrato',price:9.00,emoji:'🥂',tag:'chef',img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-orari.jpg'},
-  {id:12,cat:'Vini',name:'Barbera d’Asti DOC · calice',desc:'Produttori locali, intenso e strutturato · zona UNESCO',price:10.00,emoji:'🍷',tag:'chef',img:'http://www.villafontanaaglianoterme.it/wp-content/uploads/2021/04/box-tartufo.jpg'},
+  {id:11,cat:'Vini',name:'Moscato d’Asti DOCG · calice',desc:'Dolce, frizzante, aromatico · Langhe e Monferrato',price:9.00,emoji:'🥂',tag:'chef',img:'https://images.unsplash.com/photo-1474722883778-792e7990302f?w=600&q=80&fit=crop&crop=center'},
+  {id:12,cat:'Vini',name:'Barbera d’Asti DOC · calice',desc:'Produttori locali, intenso e strutturato · zona UNESCO',price:10.00,emoji:'🍷',tag:'chef',img:'https://images.unsplash.com/photo-1547595628-c57cc4a63f32?w=600&q=80&fit=crop&crop=center'},
 
   // ── SNACK
-  {id:13,cat:'Snack',name:'Mixed bruschette',desc:'Pomodoro fresco, lardo d’Arnad, crema di zucchine · 3 varietà',price:10.00,emoji:'🥖',tag:null,img:null},
-  {id:14,cat:'Snack',name:'Piemontese cheese & charcuterie board',desc:'Tome di alpeggio, salumi locali, grissini di Torino, mostarde',price:18.00,emoji:'🧀',tag:'chef',img:null},
-  {id:15,cat:'Snack',name:'Seasonal fruit & sorbet',desc:'Frutta fresca di stagione, sorbetto artigianale al limone',price:9.00,emoji:'🍧',tag:null,img:null},
+  {id:13,cat:'Snack',name:'Mixed bruschette',desc:'Pomodoro fresco, lardo d’Arnad, crema di zucchine · 3 varietà',price:10.00,emoji:'🥖',tag:null,img:'https://images.unsplash.com/photo-1572695157366-5e585ab2b69f?w=600&q=80&fit=crop&crop=center'},
+  {id:14,cat:'Snack',name:'Piemontese cheese & charcuterie board',desc:'Tome di alpeggio, salumi locali, grissini di Torino, mostarde',price:18.00,emoji:'🧀',tag:'chef',img:'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80&fit=crop&crop=center'},
+  {id:15,cat:'Snack',name:'Seasonal fruit & sorbet',desc:'Frutta fresca di stagione, sorbetto artigianale al limone',price:9.00,emoji:'🍧',tag:null,img:'https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=600&q=80&fit=crop&crop=center'},
 ]
 const CATEGORIES=[...new Set(MENU.map(i=>i.cat))];
 
@@ -797,6 +828,61 @@ let guest={name:'',room:'',location:''};
 let cart=[];
 let orders=[];
 let activeCategory='Analcolici';
+let _roomKey=''; // Firebase-safe room key (always from URL number)
+
+/* ════════════════════════════════════════════
+   FIX 4 — INDICATORE CONNESSIONE ONLINE/OFFLINE
+════════════════════════════════════════════ */
+let _connTimer=null;
+function showConnBar(online){
+  const bar=document.getElementById('conn-bar');
+  if(!bar)return;
+  bar.className='conn-bar show '+(online?'online':'offline');
+  bar.textContent=online?'✓ Connessione ripristinata':'⚠ Connessione assente — riprova tra poco';
+  clearTimeout(_connTimer);
+  _connTimer=setTimeout(()=>bar.classList.remove('show'),online?2500:0);
+}
+window.addEventListener('online', ()=>showConnBar(true));
+window.addEventListener('offline',()=>showConnBar(false));
+
+/* ════════════════════════════════════════════
+   FIX 3 — ORARIO DI SERVIZIO
+   Pranzo 12:30–14:00 · Cena 19:30–21:00
+   Chiuso mercoledì (3) e giovedì (4)
+════════════════════════════════════════════ */
+const SERVICE_HOURS=[
+  {from:[12,30],to:[14,0]},
+  {from:[19,30],to:[21,0]}
+];
+const CLOSED_DAYS=[3,4]; // 0=dom,1=lun,2=mar,3=mer,4=gio,5=ven,6=sab
+
+function isServiceOpen(){
+  const now=new Date();
+  const day=now.getDay();
+  if(CLOSED_DAYS.includes(day))return false;
+  const h=now.getHours(),m=now.getMinutes();
+  const mins=h*60+m;
+  return SERVICE_HOURS.some(s=>{
+    const from=s.from[0]*60+s.from[1];
+    const to=s.to[0]*60+s.to[1];
+    return mins>=from&&mins<to;
+  });
+}
+
+function updateServiceStatus(){
+  const open=isServiceOpen();
+  const banner=document.getElementById('closed-banner');
+  const btnOrder=document.getElementById('btn-order');
+  if(banner) banner.classList.toggle('show',!open);
+  if(btnOrder){
+    btnOrder.disabled=cart.length===0||!open;
+    btnOrder.classList.toggle('closed',!open);
+    if(!open) btnOrder.textContent='⛔ '+t.send_order;
+    else btnOrder.textContent=t.send_order;
+  }
+}
+// Check every minute
+setInterval(updateServiceStatus,60000);
 
 /* ══ LANG SELECTION ══ */
 function selectLang(code){
@@ -808,57 +894,97 @@ function selectLang(code){
   },600);
 }
 
-/* ══ FIREBASE ══ */
-function fbPushOrder(o){if(!window._fbReady)return;try{window._fbPush(window._fbRef(window._fbDB,'orders'),o);}catch(e){}}
+/* ════════════════════════════════════════════
+   FIREBASE
+════════════════════════════════════════════ */
+function fbPushOrder(o){
+  if(!window._fbReady){showConnBar(false);return;}
+  try{window._fbPush(window._fbRef(window._fbDB,'orders'),o);}
+  catch(e){showConnBar(false);}
+}
+
 function fbListenOrders(){
   if(!window._fbReady)return;
-  try{window._fbOnValue(window._fbRef(window._fbDB,'orders'),snap=>{
-    const d=snap.val();if(!d)return;
-    Object.entries(d).forEach(([k,o])=>{
-      const l=orders.find(x=>x.id===o.id);
-      if(l&&l.status!==o.status){l.status=o.status;l._fbKey=k;renderOrdersList();
-        if(o.status==='preparing')showToast(t.preparing_msg);
-        if(o.status==='delivering')showToast(t.delivering_msg);
-        if(o.status==='delivered')showToast(t.delivered_msg);
-      }
-      if(l&&!l._fbKey)l._fbKey=k;
+  try{
+    // Listen to orders
+    window._fbOnValue(window._fbRef(window._fbDB,'orders'),snap=>{
+      const d=snap.val();if(!d)return;
+      Object.entries(d).forEach(([k,o])=>{
+        const l=orders.find(x=>x.id===o.id);
+        if(l&&l.status!==o.status){l.status=o.status;l._fbKey=k;renderOrdersList();
+          if(o.status==='preparing')showToast(t.preparing_msg);
+          if(o.status==='delivering')showToast(t.delivering_msg);
+          if(o.status==='delivered')showToast(t.delivered_msg);
+        }
+        if(l&&!l._fbKey)l._fbKey=k;
+      });
     });
-  });}catch(e){}
+
+    // FIX 2 — Listen to room orders to restore history
+    if(_roomKey){
+      window._fbOnValue(window._fbRef(window._fbDB,'rooms/'+_roomKey+'/orders'),snap=>{
+        const d=snap.val();if(!d)return;
+        const remote=Object.values(d);
+        // Merge remote orders not already in local list
+        remote.forEach(ro=>{
+          if(!orders.find(o=>o.id===ro.id)) orders.push(ro);
+        });
+        orders.sort((a,b)=>b.timestamp-a.timestamp);
+        renderOrdersList();
+      });
+    }
+
+    // FIX 1 — Listen to room lang to restore language preference
+    if(_roomKey){
+      window._fbGet(window._fbRef(window._fbDB,'rooms/'+_roomKey+'/lang')).then(snap=>{
+        const savedLang=snap.val();
+        if(savedLang&&T[savedLang]&&savedLang!==lang){
+          // We already selected lang from QR screen, don't override
+          // Only restore if user came back without selecting
+        }
+      }).catch(()=>{});
+    }
+
+  }catch(e){showConnBar(false);}
 }
 window.addEventListener('firebase-ready',()=>{fbListenOrders();});
 
-/* ══ ROOM MEMORY — check if room already has a guest ══ */
-function checkRoomMemory(){
-  // We need room selection first for new guests
-  // Show check-in but first check if URL has room param
-  const urlRoom = new URLSearchParams(window.location.search).get('room');
-  if(urlRoom){
-    // QR code has room encoded — check Firebase for existing guest
-    checkFirebaseRoom(urlRoom);
-  } else {
-    showCheckIn();
-  }
+/* ════════════════════════════════════════════
+   ROOM MEMORY
+════════════════════════════════════════════ */
+function getRoomKey(roomParam){
+  // FIX 5 — always normalize from number only for consistency
+  const num=(roomParam||'').replace(/\D/g,'');
+  return num?'Room_'+num:roomParam.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
 }
 
-function checkFirebaseRoom(roomKey){
-  if(!window._fbReady){
-    window.addEventListener('firebase-ready',()=>checkFirebaseRoom(roomKey));
-    return;
-  }
+function checkRoomMemory(){
+  // Single QR — no URL room param needed
+  // Check localStorage for returning guest on this device
   try{
-    const roomRef=window._fbRef(window._fbDB,'rooms/'+roomKey.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,''));
-    window._fbGet(roomRef).then(snap=>{
-      const data=snap.val();
-      if(data&&data.guest&&data.guest.trim()!==''){
-        // Returning guest
-        guest={name:data.guest,room:roomKey,location:''};
-        showReturningScreen(data.guest,roomKey);
-      } else {
-        // New guest - pre-fill room
-        showCheckIn(roomKey);
+    const saved=JSON.parse(localStorage.getItem('vf_guest')||'null');
+    if(saved&&saved.name&&saved.room&&saved.roomKey){
+      // Verify still checked in on Firebase
+      if(!window._fbReady){
+        window.addEventListener('firebase-ready',()=>checkRoomMemory());
+        return;
       }
-    }).catch(()=>showCheckIn(roomKey));
-  }catch(e){showCheckIn(roomKey);}
+      window._fbGet(window._fbRef(window._fbDB,'rooms/'+saved.roomKey)).then(snap=>{
+        const data=snap.val();
+        if(data&&data.guest&&data.guest===saved.name){
+          guest={name:saved.name,room:saved.room,location:''};
+          _roomKey=saved.roomKey;
+          if(data.lang&&T[data.lang]){lang=data.lang;t=T[lang];}
+          showReturningScreen(saved.name,saved.room);
+        } else {
+          localStorage.removeItem('vf_guest');
+          showCheckIn();
+        }
+      }).catch(()=>showCheckIn());
+    } else {
+      showCheckIn();
+    }
+  }catch(e){showCheckIn();}
 }
 
 function showReturningScreen(name,room){
@@ -875,31 +1001,35 @@ function showReturningScreen(name,room){
 }
 
 function continueAsReturning(){
-  const loc=document.getElementById('ret-location').value;
-  guest.location=loc;
+  // Location not required at check-in — will be asked at order time
+  guest.location='';
   document.getElementById('returning-screen').classList.remove('visible');
+  if(window._fbReady&&_roomKey){
+    try{
+      window._fbUpdate(window._fbRef(window._fbDB,'rooms/'+_roomKey),{lang:lang});
+      window._fbUpdate(window._fbRef(window._fbDB,'guests/'+_roomKey),{lang:lang,lastSeen:Date.now()});
+    }catch(e){}
+  }
   launchApp();
 }
 
 function resetAndRegister(){
-  // Clear room memory and show fresh check-in
-  const urlRoom=new URLSearchParams(window.location.search).get('room');
-  if(urlRoom&&window._fbReady){
+  // Clear localStorage
+  try{localStorage.removeItem('vf_guest');}catch(e){}
+  // Clear Firebase room entry
+  if(_roomKey&&window._fbReady){
     try{
-      const roomKey=urlRoom.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
-      window._fbSet(window._fbRef(window._fbDB,'rooms/'+roomKey),{guest:''});
+      window._fbSet(window._fbRef(window._fbDB,'rooms/'+_roomKey),{guest:''});
     }catch(e){}
   }
+  _roomKey='';
+  guest={name:'',room:'',location:''};
   document.getElementById('returning-screen').classList.remove('visible');
-  showCheckIn(urlRoom||'');
+  showCheckIn();
 }
 
-function showCheckIn(preRoom){
+function showCheckIn(){
   applyLangToUI();
-  if(preRoom){
-    const sel=document.getElementById('input-room');
-    [...sel.options].forEach(o=>{if(o.text===preRoom||o.value===preRoom)o.selected=true;});
-  }
   document.getElementById('splash').classList.add('visible');
 }
 
@@ -909,7 +1039,6 @@ function applyLangToUI(){
   setT('checkin-title','welcome');
   setT('lbl-name','your_name');
   setT('lbl-room','your_room');
-  setT('lbl-location','location');
   setT('btn-checkin','enter');
   setT('splash-footer-txt','hours');
   setT('splash-badge-txt','extra_service');
@@ -953,23 +1082,39 @@ function applyLangToUI(){
     if(curIdx >= 0 && curIdx < locs.length) selectEl.selectedIndex = curIdx + (includeBlank ? 1 : 0);
   };
 
-  buildLocOptions(document.getElementById('input-location'), true);
   buildLocOptions(document.getElementById('disp-location'), false);
   buildLocOptions(document.getElementById('ret-location'), false);
+  buildLocOptions(document.getElementById('cart-location-select'), true);
+  // Translate cart location label
+  const cll=document.getElementById('cart-loc-lbl');
+  if(cll) cll.textContent='📍 '+t.location;
+  const clp=document.getElementById('cart-loc-placeholder');
+  if(clp) clp.textContent=t.select_location;
 }
 
 /* ══ CHECK-IN ══ */
 function doCheckIn(){
   const name=document.getElementById('input-name').value.trim();
   const room=document.getElementById('input-room').value;
-  const loc=document.getElementById('input-location').value;
-  if(!name||!room||!loc){shakeMissing([!name&&'input-name',!room&&'input-room',!loc&&'input-location'].filter(Boolean));return;}
-  guest={name,room,location:loc};
+  if(!name||!room){shakeMissing([!name&&'input-name',!room&&'input-room'].filter(Boolean));return;}
+  guest={name,room,location:''};
   // Save to Firebase
+  _roomKey=getRoomKey(room);
+  // Save to localStorage for returning guest on same device
+  try{localStorage.setItem('vf_guest',JSON.stringify({name,room,roomKey:_roomKey}));}catch(e){}
   if(window._fbReady){
     try{
-      const roomKey=room.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
-      window._fbSet(window._fbRef(window._fbDB,'rooms/'+roomKey),{guest:name,checkin:Date.now()});
+      const now=Date.now();
+      // Save to rooms (for room-based memory)
+      window._fbSet(window._fbRef(window._fbDB,'rooms/'+_roomKey),{
+        guest:name, lang:lang, checkin:now, room:room
+      });
+      // Save to guests (visible on manager dashboard)
+      window._fbSet(window._fbRef(window._fbDB,'guests/'+_roomKey),{
+        name:name, room:room, lang:lang, checkin:now,
+        checkinFormatted:new Date(now).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
+        status:'active'
+      });
     }catch(e){}
   }
   document.getElementById('splash').classList.add('fade-out');
@@ -995,14 +1140,30 @@ function launchApp(){
   document.getElementById('cart-room-disp').textContent=roomDisplay;
   document.getElementById('app').classList.add('visible');
   buildCatNav();renderMenu();
+  // FIX 3 — check service hours on launch
+  updateServiceStatus();
 }
 
 function updateLocation(v){
   guest.location=v;
-  // v is stored as Italian key, display translated
   const locIdx=(LOC_TRANSLATIONS['it']||[]).indexOf(v);
   const locDisplay=locIdx>=0?(LOC_TRANSLATIONS[lang]||[])[locIdx]||v:v;
   document.getElementById('cart-loc-disp').textContent=locDisplay;
+  // Sync cart location select
+  const cartSel=document.getElementById('cart-location-select');
+  if(cartSel) cartSel.value=v;
+}
+
+function updateLocationFromCart(v){
+  guest.location=v;
+  // Sync location bar in app header
+  const locIdx=(LOC_TRANSLATIONS['it']||[]).indexOf(v);
+  const locDisplay=locIdx>=0?(LOC_TRANSLATIONS[lang]||[])[locIdx]||v:v;
+  document.getElementById('cart-loc-disp').textContent=locDisplay||'—';
+  const dispSel=document.getElementById('disp-location');
+  if(dispSel) dispSel.value=v;
+  // Update send button state
+  updateCartBadge();
 }
 
 /* ══ CAT NAV ══ */
@@ -1053,7 +1214,20 @@ function addToCart(id){
 function removeFromCart(id){const nid=isNaN(id)?id:Number(id);cart=cart.filter(c=>c.item.id!==nid);updateCartBadge();renderMenu();renderCartItems();}
 function changeQty(id,d){const nid=isNaN(id)?id:Number(id);const e=cart.find(c=>c.item.id===nid);if(!e)return;e.qty+=d;if(e.qty<=0){removeFromCart(nid);return;}updateCartBadge();renderCartItems();}
 function updateNote(id,v){const nid=isNaN(id)?id:Number(id);const e=cart.find(c=>c.item.id===nid);if(e)e.note=v;}
-function updateCartBadge(){const tot=cart.reduce((s,c)=>s+c.qty,0);const b=document.getElementById('cart-count');b.textContent=tot;b.classList.toggle('hidden',tot===0);document.getElementById('btn-order').disabled=cart.length===0;updateCartTotal();}
+function updateCartBadge(){
+  const tot=cart.reduce((s,c)=>s+c.qty,0);
+  const b=document.getElementById('cart-count');
+  b.textContent=tot;b.classList.toggle('hidden',tot===0);
+  const open=isServiceOpen();
+  const hasLoc=!!guest.location;
+  const btnO=document.getElementById('btn-order');
+  if(btnO){
+    btnO.disabled=cart.length===0||!open;
+    btnO.classList.toggle('closed',!open&&cart.length>0);
+    btnO.textContent=(!open&&cart.length>0)?'⛔ '+t.send_order:t.send_order;
+  }
+  updateCartTotal();
+}
 function updateCartTotal(){const tot=cart.reduce((s,c)=>s+((c.item.price||0)*c.qty),0);document.getElementById('cart-total').textContent='€ '+tot.toFixed(2).replace('.',',');}
 function renderCartItems(){
   const el=document.getElementById('cart-items-list');
@@ -1066,6 +1240,15 @@ function toggleCart(){const o=document.getElementById('cart-overlay'),s=document
 /* ══ PLACE ORDER ══ */
 function placeOrder(){
   if(!cart.length)return;
+  // Require location selection
+  if(!guest.location){
+    const cartSel=document.getElementById('cart-location-select');
+    if(cartSel){cartSel.style.borderColor='#AC4A4A';setTimeout(()=>cartSel.style.borderColor='',1500);}
+    showToast('📍 '+( (LOC_TRANSLATIONS[lang]||LOC_TRANSLATIONS['it'])[0]||'Seleziona posizione'));
+    return;
+  }
+  // FIX 3 — block if service closed
+  if(!isServiceOpen()){showToast('⛔ '+t.send_order+' — Servizio chiuso');return;}
   const now=new Date();
   const order={id:'ORD-'+Date.now().toString(36).toUpperCase(),timestamp:Date.now(),
     date:now.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}),
@@ -1076,7 +1259,18 @@ function placeOrder(){
     specialReq:document.getElementById('special-req').value.trim()||'',status:'received'};
   orders.unshift(order);cart=[];document.getElementById('special-req').value='';
   updateCartBadge();renderCartItems();renderMenu();toggleCart();
-  fbPushOrder(order);showToast(t.order_sent);
+  fbPushOrder(order);
+  if(window._fbReady&&_roomKey){
+    try{
+      // Save order under room for history
+      window._fbPush(window._fbRef(window._fbDB,'rooms/'+_roomKey+'/orders'),order);
+      // Update guest last order time on dashboard
+      window._fbUpdate(window._fbRef(window._fbDB,'guests/'+_roomKey),{
+        lastOrder:order.time, lastOrderTS:order.timestamp
+      });
+    }catch(e){}
+  }
+  showToast(t.order_sent);
 }
 
 /* ══ ORDERS LIST ══ */
