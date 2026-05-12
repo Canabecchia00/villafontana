@@ -1229,13 +1229,11 @@ function updateCartBadge(){
   const tot=cart.reduce((s,c)=>s+c.qty,0);
   const b=document.getElementById('cart-count');
   b.textContent=tot;b.classList.toggle('hidden',tot===0);
-  const open=isServiceOpen();
-  const hasLoc=!!guest.location;
   const btnO=document.getElementById('btn-order');
   if(btnO){
-    btnO.disabled=cart.length===0||!open;
-    btnO.classList.toggle('closed',!open&&cart.length>0);
-    btnO.textContent=(!open&&cart.length>0)?'⛔ '+t.send_order:t.send_order;
+    btnO.disabled=cart.length===0;
+    btnO.classList.remove('closed');
+    btnO.textContent=t.send_order;
   }
   updateCartTotal();
 }
@@ -1251,15 +1249,17 @@ function toggleCart(){const o=document.getElementById('cart-overlay'),s=document
 /* ══ PLACE ORDER ══ */
 function placeOrder(){
   if(!cart.length)return;
-  // Require location selection
+  // If no location selected, show warning and highlight the selector
   if(!guest.location){
     const cartSel=document.getElementById('cart-location-select');
-    if(cartSel){cartSel.style.borderColor='#AC4A4A';setTimeout(()=>cartSel.style.borderColor='',1500);}
-    showToast('📍 '+( (LOC_TRANSLATIONS[lang]||LOC_TRANSLATIONS['it'])[0]||'Seleziona posizione'));
+    if(cartSel){
+      cartSel.style.borderColor='#AC4A4A';
+      cartSel.focus();
+      setTimeout(()=>cartSel.style.borderColor='',2000);
+    }
+    showToast('📍 ' + t.select_location);
     return;
   }
-  // FIX 3 — block if service closed
-  if(!isServiceOpen()){showToast('⛔ '+t.send_order+' — Servizio chiuso');return;}
   const now=new Date();
   const order={id:'ORD-'+Date.now().toString(36).toUpperCase(),timestamp:Date.now(),
     date:now.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}),
