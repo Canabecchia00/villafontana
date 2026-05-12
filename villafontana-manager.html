@@ -402,7 +402,7 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
     <div class="tb-stats">
       <div class="tb-stat"><span class="tb-stat-val" id="s-guests">0</span><span class="tb-stat-lbl">Ospiti attivi</span></div>
       <div class="tb-stat"><span class="tb-stat-val" id="s-new">0</span><span class="tb-stat-lbl">Nuovi ordini</span></div>
-      <div class="tb-stat"><span class="tb-stat-val" id="s-prep">0</span><span class="tb-stat-lbl">In cucina</span></div>
+      <div class="tb-stat"><span class="tb-stat-val" id="s-done">0</span><span class="tb-stat-lbl">Consegnati</span></div>
       <div class="tb-stat"><span class="tb-stat-val" id="s-rev">€0</span><span class="tb-stat-lbl">Incasso</span></div>
     </div>
     <div class="tb-right">
@@ -530,13 +530,25 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
 
 <script>
 /* ══ LOGIN ══ */
-const PWD_HASH=btoa(unescape(encodeURIComponent('VillaFontana2026')));
+const PWD_HASH=btoa(unescape(encodeURIComponent('VF26')));
+
+function showApp(){
+  document.getElementById('login').style.display='none';
+  document.getElementById('main').classList.add('visible');
+  if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+}
+
+// Auto-login if session is still valid
+if(sessionStorage.getItem('vf_mgr_auth')===PWD_HASH){
+  document.addEventListener('DOMContentLoaded', showApp);
+}
+
 function doLogin(){
   const v=document.getElementById('pwd').value;
-  if(btoa(unescape(encodeURIComponent(v)))===PWD_HASH){
-    document.getElementById('login').style.display='none';
-    document.getElementById('main').classList.add('visible');
-    if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+  const h=btoa(unescape(encodeURIComponent(v)));
+  if(h===PWD_HASH){
+    sessionStorage.setItem('vf_mgr_auth', PWD_HASH);
+    showApp();
   } else {
     const e=document.getElementById('login-err');e.style.display='block';
     setTimeout(()=>e.style.display='none',3000);
@@ -545,7 +557,7 @@ function doLogin(){
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login').style.display!=='none')doLogin();});
 
 /* ══ STATE ══ */
-let currentFilter='all';
+let currentFilter='received';
 let filterGuest=null; // filter orders by specific guest roomKey
 let audioOn=false;let audioCtx=null;
 let knownOrderKeys=new Set();
@@ -669,10 +681,11 @@ const SB={received:'sb-received',preparing:'sb-preparing',delivering:'sb-deliver
 function cardHTML(k,o){
   const items=(o.items||[]).map(i=>`<div class="oi-row"><div><span class="oi-qty">${i.qty}×</span>${i.emoji||''} ${i.name}${i.note?`<span class="oi-note">↳ ${i.note}</span>`:''}</div><div class="oi-right">€ ${((i.price||0)*i.qty).toFixed(2).replace('.',',')}</div></div>`).join('');
   let actions='';
-  if(o.status==='received') actions=`<button class="abtn abtn-prep" onclick="setStatus('${k}','preparing')">👨‍🍳 Prendi in carico</button><button class="abtn abtn-rm" onclick="delOrder('${k}')">✕</button>`;
-  else if(o.status==='preparing') actions=`<button class="abtn abtn-del" onclick="setStatus('${k}','delivering')">🛎 In consegna</button><button class="abtn abtn-rm" onclick="delOrder('${k}')">✕</button>`;
-  else if(o.status==='delivering') actions=`<button class="abtn abtn-done" onclick="setStatus('${k}','delivered')">✅ Consegnato</button><button class="abtn abtn-rm" onclick="delOrder('${k}')">✕</button>`;
-  else actions=`<button class="abtn abtn-rm" style="flex:1" onclick="delOrder('${k}')">✕ Rimuovi</button>`;
+  if(o.status==='received'){
+    actions=`<button class="abtn abtn-done" onclick="setStatus('${k}','delivered')">✅ Consegnato</button><button class="abtn abtn-rm" onclick="delOrder('${k}')">✕</button>`;
+  } else {
+    actions=`<button class="abtn abtn-rm" style="flex:1" onclick="delOrder('${k}')">✕ Rimuovi</button>`;
+  }
   return `<div class="ocard s-${o.status}">
     <div class="ocard-head">
       <div class="ocard-head-left">
@@ -690,7 +703,37 @@ function cardHTML(k,o){
 }
 
 /* ══ ACTIONS ══ */
-function setStatus(k,s){if(window._updateStatus)window._updateStatus(k,s);}
+function setStatus(k,s){
+  if(!window._updateStatus) return;
+  window._updateStatus(k,s);
+  // When delivered — auto-save order snapshot to room history
+  if(s==='delivered'){
+    const order=ordersCache[k];
+    if(order&&window._ref&&window._db){
+      try{
+        const roomNum=(order.room||'').replace(/\D/g,'');
+        const roomKey=roomNum?'Room_'+roomNum:'';
+        if(roomKey){
+          // Save delivered order under rooms/Room_X/delivered_orders
+          const deliveredRef=window._ref(window._db,'rooms/'+roomKey+'/delivered_orders/'+k);
+          window._set(deliveredRef,{
+            ...order,
+            deliveredAt: Date.now(),
+            deliveredFormatted: new Date().toLocaleString('it-IT',{
+              day:'2-digit',month:'2-digit',
+              hour:'2-digit',minute:'2-digit'
+            })
+          }).catch(e=>console.error('delivered save failed:',e));
+          // Update guest total
+          window._update(window._ref(window._db,'guests/'+roomKey),{
+            lastDelivered: new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
+            lastDeliveredTS: Date.now()
+          }).catch(()=>{});
+        }
+      }catch(e){console.error('auto-save delivered error:',e);}
+    }
+  }
+}
 function delOrder(k){if(window._deleteOrder)window._deleteOrder(k);}
 function clearDelivered(){
   if(!window._deleteOrder)return;
@@ -727,7 +770,7 @@ Il profilo verrà rimosso dalla dashboard.`))return;
 /* ══ FILTER ══ */
 function setFilter(f){
   currentFilter=f;
-  ['all','received','preparing','delivering','delivered'].forEach(id=>{
+  ['received','delivered'].forEach(id=>{
     const el=document.getElementById('f-'+id);if(el)el.classList.toggle('active',id===f);
   });
   renderOrdersGrid();
@@ -737,7 +780,7 @@ function setFilter(f){
 function updateStats(data){
   const orders=data?Object.values(data):[];
   document.getElementById('s-new').textContent=orders.filter(o=>o.status==='received').length;
-  document.getElementById('s-prep').textContent=orders.filter(o=>o.status==='preparing').length;
+  document.getElementById('s-done').textContent=orders.filter(o=>o.status==='delivered').length;
   document.getElementById('s-rev').textContent='€'+orders.reduce((s,o)=>s+(o.total||0),0).toFixed(0);
 }
 
