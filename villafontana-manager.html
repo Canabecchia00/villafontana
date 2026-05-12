@@ -26,6 +26,61 @@ window._checkoutGuest=k=>{
   // Remove guest orders from rooms
   remove(ref(db,'rooms/'+k+'/orders'));
 };
+
+/* ══ MANUAL GUEST ADD ══ */
+function openAddGuest(){
+  document.getElementById('manual-name').value='';
+  document.getElementById('manual-room').value='';
+  document.getElementById('add-guest-err').style.display='none';
+  document.getElementById('add-guest-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('manual-name').focus(),100);
+}
+function closeAddGuest(){
+  document.getElementById('add-guest-modal').classList.remove('open');
+}
+
+function saveManualGuest(){
+  const name=document.getElementById('manual-name').value.trim();
+  const roomKey=document.getElementById('manual-room').value;
+  const errEl=document.getElementById('add-guest-err');
+
+  if(!name||!roomKey){
+    errEl.textContent='Inserisci nome e camera.';
+    errEl.style.display='block';
+    return;
+  }
+  errEl.style.display='none';
+
+  if(!window._set||!window._ref||!window._db){
+    errEl.textContent='Firebase non connesso. Riprova tra un momento.';
+    errEl.style.display='block';
+    return;
+  }
+
+  const roomNum=roomKey.replace('Room_','');
+  const roomDisplay='Camera '+roomNum;
+  const now=Date.now();
+  const fmt=new Date(now).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+
+  // Write to both rooms and guests nodes
+  Promise.all([
+    window._set(window._ref(window._db,'rooms/'+roomKey),{
+      guest:name, lang:'it', checkin:now, room:roomDisplay
+    }),
+    window._set(window._ref(window._db,'guests/'+roomKey),{
+      name:name, room:roomDisplay, lang:'it',
+      checkin:now, checkinFormatted:fmt,
+      status:'active', manual:true
+    })
+  ]).then(()=>{
+    showNotif('Ospite registrato',name+' · '+roomDisplay);
+    closeAddGuest();
+  }).catch(e=>{
+    errEl.textContent='Errore Firebase: '+e.message;
+    errEl.style.display='block';
+  });
+}
+
 </script>
 <style>
 :root{
@@ -370,6 +425,9 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
           <span style="font-family:'Playfair Display',serif;color:var(--white);font-size:0.9rem;">Ospiti registrati</span>
           <span style="font-size:0.55rem;letter-spacing:0.1rem;color:var(--teal-light);" id="guests-count">0 attivi</span>
         </div>
+        <button onclick="openAddGuest()" style="margin-top:0.6rem;width:100%;background:var(--teal);color:var(--white);border:none;height:32px;font-family:'Lato',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.18rem;text-transform:uppercase;cursor:pointer;transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:0.4rem;">
+          <span>＋</span> Aggiungi ospite manualmente
+        </button>
       </div>
       <div class="sidebar-body" id="guests-list">
         <div class="no-guests">Nessun ospite registrato.<br>In attesa di check-in…</div>
@@ -408,6 +466,62 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
       <button class="modal-close" onclick="closeReport()">✕</button>
     </div>
     <div class="modal-body" id="report-body"></div>
+  </div>
+</div>
+
+
+<!-- MANUAL GUEST MODAL -->
+<div class="modal-overlay" id="add-guest-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head">
+      <div class="modal-head-brand">
+        <img class="modal-head-orn" src="https://www.villafontanaaglianoterme.it/wp-content/themes/villafontana2020/dist/images/logo-bianco.svg" onerror="this.style.display='none'" alt="">
+        <h2>Aggiungi ospite</h2>
+      </div>
+      <button class="modal-close" onclick="closeAddGuest()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:1.5rem">
+      <p style="font-size:0.72rem;color:var(--gray);margin-bottom:1.2rem;line-height:1.6;">
+        Registra manualmente un ospite che non ha ancora completato il check-in dall'app.
+      </p>
+
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-size:0.56rem;letter-spacing:0.16rem;text-transform:uppercase;color:var(--gray);font-weight:700;margin-bottom:0.4rem;">
+          Nome ospite
+        </label>
+        <input type="text" id="manual-name"
+          placeholder="es. Mario Rossi"
+          style="width:100%;border:1px solid var(--divider);background:var(--off-white);padding:0.7rem 0.8rem;font-family:'Lato',sans-serif;font-size:0.9rem;color:var(--charcoal);outline:none;transition:border-color 0.2s;"
+          onkeydown="if(event.key==='Enter')document.getElementById('manual-room').focus()">
+      </div>
+
+      <div style="margin-bottom:1.5rem">
+        <label style="display:block;font-size:0.56rem;letter-spacing:0.16rem;text-transform:uppercase;color:var(--gray);font-weight:700;margin-bottom:0.4rem;">
+          Camera
+        </label>
+        <select id="manual-room"
+          style="width:100%;border:1px solid var(--divider);background:var(--off-white);padding:0.7rem 0.8rem;font-family:'Lato',sans-serif;font-size:0.9rem;color:var(--charcoal);outline:none;-webkit-appearance:none;transition:border-color 0.2s;">
+          <option value="">— Seleziona camera —</option>
+          <option value="Room_1">Camera 1</option>
+          <option value="Room_2">Camera 2</option>
+          <option value="Room_3">Camera 3</option>
+          <option value="Room_4">Camera 4</option>
+          <option value="Room_5">Camera 5</option>
+          <option value="Room_6">Camera 6</option>
+          <option value="Room_7">Camera 7</option>
+          <option value="Room_8">Camera 8</option>
+          <option value="Room_9">Camera 9</option>
+          <option value="Room_10">Camera 10</option>
+        </select>
+      </div>
+
+      <div id="add-guest-err" style="display:none;color:var(--red);font-size:0.72rem;margin-bottom:0.8rem;text-align:center;"></div>
+
+      <button onclick="saveManualGuest()"
+        style="width:100%;background:var(--teal);color:var(--white);border:none;height:44px;font-family:'Lato',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:0.2rem;text-transform:uppercase;cursor:pointer;transition:background 0.2s;">
+        ✓ Registra ospite
+      </button>
+    </div>
   </div>
 </div>
 
@@ -707,6 +821,61 @@ function playBeep(){
   if(!audioOn)return;
   try{const a=document.getElementById('notif-audio');if(a){a.currentTime=0;a.volume=0.85;a.play().catch(()=>{});}}catch(e){}
 }
+
+/* ══ MANUAL GUEST ADD ══ */
+function openAddGuest(){
+  document.getElementById('manual-name').value='';
+  document.getElementById('manual-room').value='';
+  document.getElementById('add-guest-err').style.display='none';
+  document.getElementById('add-guest-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('manual-name').focus(),100);
+}
+function closeAddGuest(){
+  document.getElementById('add-guest-modal').classList.remove('open');
+}
+
+function saveManualGuest(){
+  const name=document.getElementById('manual-name').value.trim();
+  const roomKey=document.getElementById('manual-room').value;
+  const errEl=document.getElementById('add-guest-err');
+
+  if(!name||!roomKey){
+    errEl.textContent='Inserisci nome e camera.';
+    errEl.style.display='block';
+    return;
+  }
+  errEl.style.display='none';
+
+  if(!window._set||!window._ref||!window._db){
+    errEl.textContent='Firebase non connesso. Riprova tra un momento.';
+    errEl.style.display='block';
+    return;
+  }
+
+  const roomNum=roomKey.replace('Room_','');
+  const roomDisplay='Camera '+roomNum;
+  const now=Date.now();
+  const fmt=new Date(now).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+
+  // Write to both rooms and guests nodes
+  Promise.all([
+    window._set(window._ref(window._db,'rooms/'+roomKey),{
+      guest:name, lang:'it', checkin:now, room:roomDisplay
+    }),
+    window._set(window._ref(window._db,'guests/'+roomKey),{
+      name:name, room:roomDisplay, lang:'it',
+      checkin:now, checkinFormatted:fmt,
+      status:'active', manual:true
+    })
+  ]).then(()=>{
+    showNotif('Ospite registrato',name+' · '+roomDisplay);
+    closeAddGuest();
+  }).catch(e=>{
+    errEl.textContent='Errore Firebase: '+e.message;
+    errEl.style.display='block';
+  });
+}
+
 </script>
 </body>
 </html>
