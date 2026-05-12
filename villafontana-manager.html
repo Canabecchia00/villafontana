@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Lato:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, update, remove, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, onValue, update, remove, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 const firebaseConfig={apiKey:"AIzaSyAvTB_64X3ice0zhN-0GjnYswQLE5W23Cc",authDomain:"villa-f.firebaseapp.com",databaseURL:"https://villa-f-default-rtdb.europe-west1.firebasedatabase.app",projectId:"villa-f"};
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
@@ -18,6 +18,7 @@ onValue(ref(db,'orders'),snap=>{window._ordersData=snap.val()||{};window.renderO
 // Listen to guests
 onValue(ref(db,'guests'),snap=>{window._guestsData=snap.val()||{};window.renderGuests(snap.val());});
 
+window._get=get;
 window._updateStatus=(k,s)=>update(ref(db,'orders/'+k),{status:s});
 window._deleteOrder=k=>remove(ref(db,'orders/'+k));
 window._checkoutGuest=k=>{
@@ -356,6 +357,20 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
 .btn-print:hover{background:var(--teal-dark);}
 
 /* ══ NOTIF ══ */
+.hist-order{background:var(--off-white);border:1px solid var(--divider);border-left:3px solid var(--teal);margin-bottom:0.8rem;overflow:hidden;}
+.hist-order-head{background:var(--charcoal);padding:0.55rem 0.9rem;display:flex;justify-content:space-between;align-items:center;}
+.hist-order-id{font-family:'Playfair Display',serif;font-size:0.82rem;color:var(--white);}
+.hist-order-time{font-size:0.58rem;color:var(--gray);}
+.hist-order-body{padding:0.6rem 0.9rem;}
+.hist-item-row{display:flex;justify-content:space-between;font-size:0.75rem;padding:0.2rem 0;border-bottom:1px solid var(--cream);}
+.hist-item-row:last-child{border:none;}
+.hist-total{display:flex;justify-content:space-between;margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--divider);}
+.hist-total-lbl{font-size:0.55rem;letter-spacing:0.12rem;text-transform:uppercase;color:var(--gray);}
+.hist-total-amt{font-family:'Playfair Display',serif;font-size:0.95rem;color:var(--teal-dark);}
+.hist-grand{background:var(--charcoal);padding:0.75rem 0.9rem;display:flex;justify-content:space-between;align-items:center;margin-top:0.8rem;}
+.hist-grand-lbl{font-size:0.55rem;letter-spacing:0.14rem;text-transform:uppercase;color:var(--gray);}
+.hist-grand-amt{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--teal-light);}
+.hist-empty{text-align:center;padding:2rem;color:var(--gray);font-size:0.82rem;font-weight:300;}
 .notif-wrap{position:fixed;top:72px;right:1.2rem;z-index:400;display:flex;flex-direction:column;gap:0.4rem;pointer-events:none;}
 .notif{background:var(--white);border:1px solid var(--teal-border);border-left:3px solid var(--teal);padding:0.7rem 1rem;max-width:280px;animation:nIn 0.3s ease,nOut 0.3s 4.7s ease forwards;pointer-events:all;box-shadow:0 4px 16px var(--shadow);}
 .notif-title{font-family:'Playfair Display',serif;font-size:0.78rem;color:var(--charcoal);margin-bottom:0.15rem;}
@@ -401,7 +416,7 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
     </div>
     <div class="tb-stats">
       <div class="tb-stat"><span class="tb-stat-val" id="s-guests">0</span><span class="tb-stat-lbl">Ospiti attivi</span></div>
-      <div class="tb-stat"><span class="tb-stat-val" id="s-new">0</span><span class="tb-stat-lbl">Nuovi ordini</span></div>
+      <div class="tb-stat"><span class="tb-stat-val" id="s-new">0</span><span class="tb-stat-lbl">Ordini giornata</span></div>
       <div class="tb-stat"><span class="tb-stat-val" id="s-done">0</span><span class="tb-stat-lbl">Consegnati</span></div>
       <div class="tb-stat"><span class="tb-stat-val" id="s-rev">€0</span><span class="tb-stat-lbl">Incasso</span></div>
     </div>
@@ -438,14 +453,11 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
     <div class="orders-area">
       <div class="filterbar">
         <span class="filter-lbl">Ordini:</span>
-        <button class="fbtn active" onclick="setFilter('all')" id="f-all">Tutti</button>
-        <button class="fbtn" onclick="setFilter('received')" id="f-received">⚡ Nuovi</button>
-        <button class="fbtn" onclick="setFilter('preparing')" id="f-preparing">👨‍🍳 Cucina</button>
-        <button class="fbtn" onclick="setFilter('delivering')" id="f-delivering">🛎 Consegna</button>
+        <button class="fbtn active" onclick="setFilter('received')" id="f-received">⚡ Nuovi ordini</button>
         <button class="fbtn" onclick="setFilter('delivered')" id="f-delivered">✅ Consegnati</button>
         <span class="filter-guest-name" id="filter-guest-name"></span>
         <button class="btn-clear-filter" id="btn-clear-guest-filter" onclick="clearGuestFilter()" style="display:none">✕</button>
-        <button class="btn-clear" onclick="clearDelivered()">Rimuovi consegnati</button>
+        <button class="btn-report" onclick="openReport()">📊 Report</button>
       </div>
       <div class="orders-grid" id="orders-grid">
         <div class="empty-state"><div class="empty-icon">🍽</div><p>In attesa di ordini…<br>Il sistema è connesso e pronto.</p></div>
@@ -522,6 +534,21 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
         ✓ Registra ospite
       </button>
     </div>
+  </div>
+</div>
+
+
+<!-- GUEST HISTORY MODAL -->
+<div class="modal-overlay" id="guest-history-modal">
+  <div class="modal" style="max-width:580px">
+    <div class="modal-head">
+      <div class="modal-head-brand">
+        <img class="modal-head-orn" src="https://www.villafontanaaglianoterme.it/wp-content/themes/villafontana2020/dist/images/logo-bianco.svg" onerror="this.style.display='none'" alt="">
+        <h2 id="history-modal-title">Storico ordini</h2>
+      </div>
+      <button class="modal-close" onclick="closeGuestHistory()">✕</button>
+    </div>
+    <div class="modal-body" id="guest-history-body" style="padding:1.2rem"></div>
   </div>
 </div>
 
@@ -755,7 +782,102 @@ function toggleGuestFilter(roomKey){
   renderOrdersGrid();
 }
 function clearGuestFilter(){filterGuest=null;toggleGuestFilter(null);}
-function viewGuestOrders(k){filterGuest=k;toggleGuestFilter(k);}
+function viewGuestOrders(k){
+  const g=guestsCache[k];
+  if(!g) return;
+
+  // Set modal title
+  document.getElementById('history-modal-title').textContent=
+    'Storico · '+g.name+' · '+g.room;
+
+  const body=document.getElementById('guest-history-body');
+  body.innerHTML='<p style="text-align:center;padding:1rem;color:var(--gray);font-size:0.8rem">Caricamento…</p>';
+  document.getElementById('guest-history-modal').classList.add('open');
+
+  // Match orders by room number
+  const roomNum=(g.room||'').replace(/\D/g,'');
+
+  // Collect ALL orders for this guest from ordersCache (active) +
+  // delivered_orders from Firebase
+  const activeOrders=Object.values(ordersCache).filter(o=>{
+    return (o.room||'').replace(/\D/g,'')=== roomNum;
+  });
+
+  // Also fetch delivered orders from rooms node
+  const roomKey='Room_'+roomNum;
+  if(window._ref&&window._db){
+    window._get(window._ref(window._db,'rooms/'+roomKey+'/delivered_orders'))
+      .then(snap=>{
+        const delivered=snap.val()?Object.values(snap.val()):[];
+        // Merge: avoid duplicates by id
+        const allIds=new Set(activeOrders.map(o=>o.id));
+        const mergedOrders=[...activeOrders];
+        delivered.forEach(o=>{ if(!allIds.has(o.id)) mergedOrders.push(o); });
+        mergedOrders.sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+        renderHistoryBody(body, mergedOrders, g);
+      })
+      .catch(()=>{
+        // If can't fetch delivered, show only active
+        const sorted=[...activeOrders].sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+        renderHistoryBody(body, sorted, g);
+      });
+  } else {
+    const sorted=[...activeOrders].sort((a,b)=>(b.timestamp||0)-(a.timestamp||0));
+    renderHistoryBody(body, sorted, g);
+  }
+}
+
+function renderHistoryBody(body, orders, g){
+  if(!orders.length){
+    body.innerHTML=`<div class="hist-empty">
+      <div style="font-size:2rem;opacity:0.3;margin-bottom:0.5rem">📋</div>
+      Nessun ordine registrato per questo ospite.
+    </div>`;
+    return;
+  }
+
+  const SL={received:'Ricevuto',preparing:'In Cucina',delivering:'In Consegna',delivered:'Consegnato'};
+  const SC={received:'sb-received',preparing:'sb-preparing',delivering:'sb-delivering',delivered:'sb-delivered'};
+  const grandTotal=orders.reduce((s,o)=>s+(o.total||0),0);
+
+  const ordersHtml=orders.map(o=>`
+    <div class="hist-order">
+      <div class="hist-order-head">
+        <div>
+          <div class="hist-order-id">${o.id||'—'}</div>
+          <div class="hist-order-time">📅 ${o.date||'—'} · ⏱ ${o.time||'—'} · 📍 ${o.location||'—'}</div>
+        </div>
+        <span class="sbadge ${SC[o.status]||'sb-received'}">${SL[o.status]||o.status}</span>
+      </div>
+      <div class="hist-order-body">
+        ${(o.items||[]).map(i=>`
+          <div class="hist-item-row">
+            <span>${i.emoji||''} ${i.name}${i.note?` <em style="color:var(--gray);font-size:0.65rem">(${i.note})</em>`:''}</span>
+            <span>${i.qty}× € ${((i.price||0)*i.qty).toFixed(2).replace('.',',')}</span>
+          </div>`).join('')}
+        ${o.specialReq?`<div style="margin-top:0.4rem;font-size:0.68rem;color:var(--gray);font-style:italic">📝 ${o.specialReq}</div>`:''}
+        <div class="hist-total">
+          <span class="hist-total-lbl">Totale ordine</span>
+          <span class="hist-total-amt">€ ${(o.total||0).toFixed(2).replace('.',',')}</span>
+        </div>
+      </div>
+    </div>`).join('');
+
+  body.innerHTML=`
+    <div style="margin-bottom:1rem;padding:0.7rem 0.9rem;background:var(--teal-pale);border:1px solid var(--teal-border);">
+      <div style="font-family:'Playfair Display',serif;font-size:0.92rem;color:var(--charcoal)">${g.name}</div>
+      <div style="font-size:0.6rem;letter-spacing:0.12rem;text-transform:uppercase;color:var(--teal-dark);margin-top:0.15rem">${g.room} · Check-in: ${g.checkinFormatted||'—'}</div>
+    </div>
+    ${ordersHtml}
+    <div class="hist-grand">
+      <span class="hist-grand-lbl">Totale Extra Service</span>
+      <span class="hist-grand-amt">€ ${grandTotal.toFixed(2).replace('.',',')}</span>
+    </div>`;
+}
+
+function closeGuestHistory(){
+  document.getElementById('guest-history-modal').classList.remove('open');
+}
 
 /* ══ CHECKOUT ══ */
 function doCheckout(k,name,room){
@@ -779,7 +901,7 @@ function setFilter(f){
 /* ══ STATS ══ */
 function updateStats(data){
   const orders=data?Object.values(data):[];
-  document.getElementById('s-new').textContent=orders.filter(o=>o.status==='received').length;
+  document.getElementById('s-new').textContent=orders.length;
   document.getElementById('s-done').textContent=orders.filter(o=>o.status==='delivered').length;
   document.getElementById('s-rev').textContent='€'+orders.reduce((s,o)=>s+(o.total||0),0).toFixed(0);
 }
