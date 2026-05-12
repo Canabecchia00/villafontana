@@ -21,7 +21,8 @@ window._fbDB=db; window._fbRef=ref; window._fbPush=push;
 window._fbOnValue=onValue; window._fbUpdate=update;
 window._fbSet=set; window._fbGet=get;
 window._fbReady=true;
-window.dispatchEvent(new Event('firebase-ready'));
+// Dispatch after a tick so main script listeners are registered
+setTimeout(()=>window.dispatchEvent(new Event('firebase-ready')), 50);
 </script>
 <style>
 /* ══════════════════════════════
@@ -897,9 +898,14 @@ function selectLang(code){
    FIREBASE
 ════════════════════════════════════════════ */
 function fbPushOrder(o){
-  if(!window._fbReady){showConnBar(false);return;}
-  try{window._fbPush(window._fbRef(window._fbDB,'orders'),o);}
-  catch(e){showConnBar(false);}
+  if(!window._fbReady){
+    setTimeout(()=>fbPushOrder(o), 300);
+    return;
+  }
+  try{
+    window._fbPush(window._fbRef(window._fbDB,'orders'),o)
+      .catch(e=>{console.error('Order push failed:',e);showConnBar(false);});
+  }catch(e){console.error('fbPushOrder error:',e);showConnBar(false);}
 }
 
 function fbListenOrders(){
@@ -1101,21 +1107,27 @@ function doCheckIn(){
   _roomKey=getRoomKey(room);
   // Save to localStorage for returning guest on same device
   try{localStorage.setItem('vf_guest',JSON.stringify({name,room,roomKey:_roomKey}));}catch(e){}
-  if(window._fbReady){
+  // Save to Firebase — with retry if not ready yet
+  function saveGuestToFirebase(){
+    if(!window._fbReady){
+      setTimeout(saveGuestToFirebase, 200);
+      return;
+    }
     try{
       const now=Date.now();
-      // Save to rooms (for room-based memory)
+      const fmt=new Date(now).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      // Save to rooms node
       window._fbSet(window._fbRef(window._fbDB,'rooms/'+_roomKey),{
         guest:name, lang:lang, checkin:now, room:room
-      });
-      // Save to guests (visible on manager dashboard)
+      }).catch(e=>console.error('rooms write failed:',e));
+      // Save to guests node — this is what manager sees
       window._fbSet(window._fbRef(window._fbDB,'guests/'+_roomKey),{
         name:name, room:room, lang:lang, checkin:now,
-        checkinFormatted:new Date(now).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),
-        status:'active'
-      });
-    }catch(e){}
+        checkinFormatted:fmt, status:'active'
+      }).catch(e=>console.error('guests write failed:',e));
+    }catch(e){console.error('Firebase checkin error:',e);}
   }
+  saveGuestToFirebase();
   document.getElementById('splash').classList.add('fade-out');
   setTimeout(()=>{document.getElementById('splash').classList.remove('visible','fade-out');launchApp();},900);
 }
@@ -1262,11 +1274,11 @@ function placeOrder(){
   if(window._fbReady&&_roomKey){
     try{
       // Save order under room for history
-      window._fbPush(window._fbRef(window._fbDB,'rooms/'+_roomKey+'/orders'),order);
-      // Update guest last order time on dashboard
+      window._fbPush(window._fbRef(window._fbDB,'rooms/'+_roomKey+'/orders'),order)
+        .catch(e=>console.error('room order push failed:',e));
       window._fbUpdate(window._fbRef(window._fbDB,'guests/'+_roomKey),{
         lastOrder:order.time, lastOrderTS:order.timestamp
-      });
+      }).catch(e=>console.error('guest update failed:',e));
     }catch(e){}
   }
   showToast(t.order_sent);
