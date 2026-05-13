@@ -164,6 +164,28 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
 .tb-btn{background:none;border:1px solid rgba(78,155,143,0.3);color:var(--teal-light);height:32px;padding:0 0.8rem;font-family:'Lato',sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:0.12rem;text-transform:uppercase;cursor:pointer;transition:all 0.18s;white-space:nowrap;}
 .tb-btn:hover{background:rgba(78,155,143,0.15);border-color:var(--teal);}
 .tb-btn.active{background:rgba(78,155,143,0.15);border-color:var(--teal);}
+.audio-btn.ringing{
+  background:var(--teal)!important;
+  border-color:var(--teal)!important;
+  color:white!important;
+  animation:ring 0.5s ease infinite;
+}
+@keyframes ring{
+  0%,100%{transform:scale(1) rotate(0deg);}
+  25%{transform:scale(1.15) rotate(-8deg);}
+  75%{transform:scale(1.15) rotate(8deg);}
+}
+.new-order-flash{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  background:var(--teal);color:white;
+  padding:0.8rem;text-align:center;
+  font-family:'Lato',sans-serif;font-size:0.85rem;font-weight:700;
+  letter-spacing:0.1rem;
+  animation:slideDown 0.3s ease,fadeOut 0.5s 3.5s ease forwards;
+  box-shadow:0 2px 12px rgba(0,0,0,0.2);
+}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0;pointer-events:none}}
 .audio-btn{font-size:0.95rem;padding:0 0.7rem;}
 
 /* ══ BODY — two column layout ══ */
@@ -566,7 +588,7 @@ function showApp(){
 }
 
 // Auto-login if session is still valid
-if(sessionStorage.getItem('vf_mgr_auth')===PWD_HASH){
+if(localStorage.getItem('vf_mgr_auth')===PWD_HASH){
   document.addEventListener('DOMContentLoaded', showApp);
 }
 
@@ -574,7 +596,7 @@ function doLogin(){
   const v=document.getElementById('pwd').value;
   const h=btoa(unescape(encodeURIComponent(v)));
   if(h===PWD_HASH){
-    sessionStorage.setItem('vf_mgr_auth', PWD_HASH);
+    localStorage.setItem('vf_mgr_auth', PWD_HASH);
     showApp();
   } else {
     const e=document.getElementById('login-err');e.style.display='block';
@@ -733,8 +755,11 @@ function cardHTML(k,o){
 function setStatus(k,s){
   if(!window._updateStatus) return;
   window._updateStatus(k,s);
-  // When delivered — auto-save order snapshot to room history
+  // When delivered — auto-save + schedule auto-delete after 1 hour
   if(s==='delivered'){
+    setTimeout(()=>{
+      if(window._deleteOrder) window._deleteOrder(k);
+    }, 60 * 60 * 1000); // 1 ora = 3600000ms
     const order=ordersCache[k];
     if(order&&window._ref&&window._db){
       try{
@@ -920,7 +945,8 @@ function generateReport(filterKey){
   orders.forEach(o=>{
     const key=(o.guest||'—')+'__'+(o.room||'—');
     if(!groups[key])groups[key]={guest:o.guest,room:o.room,orders:[]};
-    groups[key].orders.push(o);
+    // Avoid duplicates
+    if(!groups[key].orders.find(x=>x.id===o.id))groups[key].orders.push(o);
   });
   let filtered=Object.values(groups).filter(g=>!roomFilter||g.room===roomFilter);
   if(filterKey){
@@ -968,10 +994,19 @@ function generateReport(filterKey){
 /* ══ NOTIFICATIONS ══ */
 function showNotif(title,body){
   if('Notification' in window&&Notification.permission==='granted')new Notification('🍽 '+title,{body});
+  // In-app toast notification
   const wrap=document.getElementById('notif-wrap');
   const el=document.createElement('div');el.className='notif';
   el.innerHTML=`<div class="notif-title">🔔 ${title}</div><div class="notif-body">${body}</div>`;
   wrap.appendChild(el);setTimeout(()=>el.remove(),5200);
+  // Top flash banner
+  const old=document.querySelector('.new-order-flash');if(old)old.remove();
+  const flash=document.createElement('div');flash.className='new-order-flash';
+  flash.textContent='🔔  NUOVO ORDINE — '+body;
+  document.body.appendChild(flash);setTimeout(()=>flash.remove(),4200);
+  // Ring the bell button
+  const btn=document.getElementById('audio-btn');
+  if(btn){btn.classList.add('ringing');setTimeout(()=>btn.classList.remove('ringing'),3000);}
 }
 
 /* ══ AUDIO ══ */
