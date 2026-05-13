@@ -232,7 +232,9 @@ body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charc
   transition:background 0.15s,border-color 0.15s;
 }
 .guest-card:hover{background:var(--teal-pale);border-color:var(--teal);}
-.guest-card.selected{background:var(--teal-pale);border-left-color:var(--teal-dark);}
+.guest-card.selected{background:#FFFBEA;border-left-color:#D4A800;border-color:#D4A800;box-shadow:0 0 0 1px rgba(212,168,0,0.3);}
+.guest-card.selected .gc-name{color:#6B4800;background:#FFE066;padding:0.1rem 0.4rem;border-radius:2px;display:inline-block;}
+.guest-card.selected .gc-room{color:#8B6000;}
 .gc-name{font-family:'Playfair Display',serif;font-size:0.92rem;font-weight:500;color:var(--charcoal);}
 .gc-room{font-size:0.58rem;letter-spacing:0.12rem;text-transform:uppercase;color:var(--teal-dark);font-weight:700;margin-top:0.15rem;}
 .gc-meta{font-size:0.62rem;color:var(--gray);margin-top:0.25rem;line-height:1.4;}
@@ -891,7 +893,7 @@ function renderHistoryBody(body, orders, g){
   body.innerHTML=`
     <div style="margin-bottom:1rem;padding:0.7rem 0.9rem;background:var(--teal-pale);border:1px solid var(--teal-border);">
       <div style="font-family:'Playfair Display',serif;font-size:0.92rem;color:var(--charcoal)">${g.name}</div>
-      <div style="font-size:0.6rem;letter-spacing:0.12rem;text-transform:uppercase;color:var(--teal-dark);margin-top:0.15rem">${g.room} · Check-in: ${g.checkinFormatted||'—'}</div>
+      <div style="font-size:0.6rem;letter-spacing:0.12rem;text-transform:uppercase;color:var(--teal-dark);margin-top:0.15rem">Camera ${(g.room||'').replace(/\D/g,'')} · Check-in: ${g.checkinFormatted||'—'}</div>
     </div>
     ${ordersHtml}
     <div class="hist-grand">
@@ -943,8 +945,11 @@ function generateReport(filterKey){
   const roomFilter=document.getElementById('r-room')?.value||'';
   const groups={};
   orders.forEach(o=>{
-    const key=(o.guest||'—')+'__'+(o.room||'—');
-    if(!groups[key])groups[key]={guest:o.guest,room:o.room,orders:[]};
+    // Normalize room name to Italian "Camera X"
+    const roomNum=(o.room||'').replace(/\D/g,'');
+    const roomIT=roomNum?'Camera '+roomNum:(o.room||'—');
+    const key=(o.guest||'—')+'__'+roomIT;
+    if(!groups[key])groups[key]={guest:o.guest,room:roomIT,orders:[]};
     // Avoid duplicates
     if(!groups[key].orders.find(x=>x.id===o.id))groups[key].orders.push(o);
   });

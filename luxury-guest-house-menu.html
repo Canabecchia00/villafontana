@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Villa Fontana · Extra Service</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
@@ -236,8 +236,8 @@ body{
   background:rgba(78,155,143,0.15);
   border:2px solid rgba(78,155,143,0.6);
   color:var(--teal-light);
-  width:48px;height:48px;
-  font-size:1.4rem;cursor:pointer;
+  width:54px;height:54px;
+  font-size:1.6rem;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   transition:all 0.15s;position:relative;border-radius:50%;
 }
@@ -483,7 +483,7 @@ body{
 .ci-note{
   width:100%;background:var(--cream);border:1px solid var(--divider);
   padding:0.35rem 0.5rem;font-family:'Lato',sans-serif;
-  font-size:0.78rem;color:var(--charcoal);resize:none;
+  font-size:16px;color:var(--charcoal);resize:none;
   outline:none;margin-top:0.4rem;transition:border-color 0.2s;
   border-radius:0;
 }
@@ -757,7 +757,7 @@ body{
     </div>
     <div class="special-req-group">
       <label id="cart-loc-lbl">📍 Dove sei adesso</label>
-      <select id="cart-location-select" style="width:100%;background:var(--cream);border:1px solid var(--divider);padding:0.6rem 0.8rem;font-family:'Lato',sans-serif;font-size:0.85rem;color:var(--charcoal);outline:none;-webkit-appearance:none;border-radius:0;transition:border-color 0.2s;" onchange="updateLocationFromCart(this.value)">
+      <select id="cart-location-select" style="width:100%;background:var(--cream);border:1px solid var(--divider);padding:0.6rem 0.8rem;font-family:'Lato',sans-serif;font-size:16px;color:var(--charcoal);outline:none;-webkit-appearance:none;border-radius:0;transition:border-color 0.2s;" onchange="updateLocationFromCart(this.value)">
         <option value="" id="cart-loc-placeholder">— Seleziona posizione —</option>
         <option value="In camera">In camera</option>
         <option value="Piscina">Piscina</option>
@@ -1299,7 +1299,7 @@ function renderOrdersList(){
   const SC={received:'s-received',preparing:'s-preparing',delivering:'s-delivering',delivered:'s-delivered'};
   const grandTotal=orders.reduce((s,o)=>s+(o.total||0),0);
   const grandHtml=orders.length>1?`<div style="background:var(--teal-dark);padding:0.85rem 1.1rem;display:flex;justify-content:space-between;align-items:center;margin-top:0.5rem;"><span style="font-size:0.58rem;letter-spacing:0.16rem;text-transform:uppercase;color:rgba(255,255,255,0.6);">TOTALE EXTRA SERVICE</span><span style="font-family:'Playfair Display',serif;font-size:1.3rem;color:#FFFFFF;">€ ${grandTotal.toFixed(2).replace('.',',')}</span></div>`:'';
-  el.innerHTML=orders.map(o=>`<div class="order-card"><div class="order-card-head"><div><div class="order-id-text">${o.id}</div><div class="order-time-text">📅 ${o.date} · ⏱ ${o.time}</div></div><span class="order-status-badge ${SC[o.status]||'s-received'}">${SL[o.status]||o.status}</span></div><div class="order-card-body"><div class="order-meta"><span>📍 <strong>${o.location}</strong></span><span>🛏 <strong>${o.room}</strong></span></div><ul class="order-items-list">${o.items.map(i=>`<li><span><span class="oi-qty">${i.qty}×</span>${i.emoji} ${i.name}${i.note?` <em style="color:var(--gray);font-size:0.65rem">(${i.note})</em>`:''}</span><span>€ ${(i.price*i.qty).toFixed(2).replace('.',',')}</span></li>`).join('')}</ul>${o.specialReq?`<div class="order-note-block">📝 ${o.specialReq}</div>`:''}<div class="order-total-row"><span class="otr-label">${t.order_total}</span><span class="otr-amount">€ ${o.total.toFixed(2).replace('.',',')}</span></div></div></div>`).join('')+grandHtml;
+  el.innerHTML=orders.map(o=>`<div class="order-card"><div class="order-card-head"><div><div class="order-id-text">${o.id}</div><div class="order-time-text">📅 ${o.date} · ⏱ ${o.time}</div></div><span class="order-status-badge ${SC[o.status]||'s-received'}">${SL[o.status]||o.status}</span></div><div class="order-card-body"><div class="order-meta"><span>📍 <strong>${o.location}</strong></span><span>🛏 <strong>Camera ${(o.room||'').replace(/\D/g,'')}</strong></span></div><ul class="order-items-list">${o.items.map(i=>`<li><span><span class="oi-qty">${i.qty}×</span>${i.emoji} ${i.name}${i.note?` <em style="color:var(--gray);font-size:0.65rem">(${i.note})</em>`:''}</span><span>€ ${(i.price*i.qty).toFixed(2).replace('.',',')}</span></li>`).join('')}</ul>${o.specialReq?`<div class="order-note-block">📝 ${o.specialReq}</div>`:''}<div class="order-total-row"><span class="otr-label">${t.order_total}</span><span class="otr-amount">€ ${o.total.toFixed(2).replace('.',',')}</span></div></div></div>`).join('')+grandHtml;
 }
 
 /* ══ TABS ══ */
