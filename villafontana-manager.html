@@ -454,8 +454,8 @@ function renderGuests(guests,orders){
     const tot=gOrders.reduce((s,o)=>s+(o.total||0),0);
     const sel=filterGuest===k;
     return `<div class="gc${sel?' selected':''}" onclick="toggleGuestFilter('${k}')">
-      <div class="gc-name">${g.name}</div>
-      <div class="gc-room">Camera ${roomNum}</div>
+      <div class="gc-room" style="font-size:1rem;margin-bottom:0.12rem;">Camera ${roomNum}</div>
+      <div class="gc-name" style="font-size:0.8rem;color:var(--gray);font-weight:400;">${g.name}</div>
       <div class="gc-info">Check-in: ${g.checkinFormatted||'—'}${g.lastOrder?'<br>Ultimo ordine: '+g.lastOrder:''}</div>
       <div class="gc-total">
         <span class="gc-total-lbl">Totale Extra Service</span>
@@ -499,9 +499,9 @@ function cardHTML(k,o){
       <span class="sbadge ${o.status==='delivered'?'sb-d':'sb-r'}">${o.status==='delivered'?'Consegnato':'Nuovo'}</span>
     </div>
     <div class="oc-guest">
-      <span>👤 <strong>${o.guest||'—'}</strong></span>
       <span>🛏 <strong>Camera ${roomNum}</strong></span>
       <span>📍 <strong>${o.location||'—'}</strong></span>
+      <span style="color:var(--gray);font-size:0.6rem;">👤 ${o.guest||'—'}</span>
     </div>
     <div class="oc-items">${items}</div>
     ${o.note?`<div class="oc-special">📝 ${o.note}</div>`:''}
