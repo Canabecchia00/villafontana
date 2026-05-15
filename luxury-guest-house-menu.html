@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Villa Fontana · Extra Service</title>
 
 <!-- PWA -->
@@ -39,9 +39,10 @@ window._fbReady=true;
 setTimeout(()=>window.dispatchEvent(new Event('firebase-ready')),50);
 </script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html{font-size:16px;-webkit-text-size-adjust:100%;}
-body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charcoal);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+html{font-size:16px;-webkit-text-size-adjust:100%;touch-action:manipulation;}
+body{font-family:'Lato',sans-serif;background:var(--off-white);color:var(--charcoal);min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;touch-action:manipulation;}
+input,select,textarea{font-size:16px!important;transform:none!important;}
 
 :root{
   --teal:#4E9B8F;--teal-dark:#3A7A70;--teal-light:#7ABDB5;
@@ -785,6 +786,21 @@ function launchApp(){
   document.getElementById('cart-room-txt').textContent=guest.room;
   document.getElementById('app').classList.add('visible');
   buildCatBar();renderMenu();
+
+  // Reset viewport zoom dopo il check-in
+  setTimeout(()=>{
+    const vp = document.querySelector('meta[name=viewport]');
+    if(vp){
+      // Force reset: rimuovi e ricrea il meta viewport
+      vp.content = 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+      // Trick per forzare il reflow su iOS
+      document.body.style.zoom = '1';
+      document.documentElement.style.fontSize = '16px';
+    }
+    // Scroll to top
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+  }, 100);
 }
 
 /* ══ CATEGORY BAR ══ */
